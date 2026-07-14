@@ -9,17 +9,21 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { favoritesService } from "@/services/favorites.service";
 import { listingsService } from "@/services/listings.service";
+import { queryKeys } from "@/lib/query-keys";
+import { QueryErrorState, VehicleGridSkeleton } from "@/components/marketplace/CollectionStates";
 
 export function FavoritesClient() {
   const { t } = useI18n();
-  const { data: favs = [] } = useQuery({
-    queryKey: ["favorites"],
+  const favoritesQuery = useQuery({
+    queryKey: queryKeys.favorites.all,
     queryFn: () => favoritesService.list(),
   });
-  const { data: all = [] } = useQuery({
-    queryKey: ["listings", "all"],
+  const listingsQuery = useQuery({
+    queryKey: queryKeys.listings.all,
     queryFn: () => listingsService.list(),
   });
+  const favs = favoritesQuery.data ?? [];
+  const all = listingsQuery.data ?? [];
   const ids = new Set(favs.map((f) => f.listingId));
   const items = all.filter((v) => ids.has(v.id));
 
@@ -27,7 +31,18 @@ export function FavoritesClient() {
     <>
       <PageHeader eyebrow="Saved" title={t("favorites.title")} />
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        {items.length === 0 ? (
+        {favoritesQuery.isLoading || listingsQuery.isLoading ? (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <VehicleGridSkeleton />
+          </div>
+        ) : favoritesQuery.isError || listingsQuery.isError ? (
+          <QueryErrorState
+            retry={() => {
+              void favoritesQuery.refetch();
+              void listingsQuery.refetch();
+            }}
+          />
+        ) : items.length === 0 ? (
           <div className="grid place-items-center rounded-2xl surface-card p-14 text-center shadow-card">
             <div className="grid h-14 w-14 place-items-center rounded-2xl bg-secondary text-muted-foreground">
               <Heart className="h-6 w-6" />

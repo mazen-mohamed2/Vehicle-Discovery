@@ -5,7 +5,7 @@ import { ShieldCheck, Star, MapPin, ArrowRight } from "lucide-react";
 import type { Agency } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
 
-export function AgencyCard({ a }: { a: Agency }) {
+export function AgencyCard({ a, vehicleCount }: { a: Agency; vehicleCount: number }) {
   const { t } = useI18n();
   return (
     <Link
@@ -39,7 +39,7 @@ export function AgencyCard({ a }: { a: Agency }) {
           <p className="text-[10px] uppercase text-muted-foreground">{t("agency.deals")}</p>
         </div>
         <div>
-          <p className="text-lg font-black">{a.vehicleCount}</p>
+          <p className="text-lg font-black">{vehicleCount}</p>
           <p className="text-[10px] uppercase text-muted-foreground">{t("agency.vehicles")}</p>
         </div>
       </div>

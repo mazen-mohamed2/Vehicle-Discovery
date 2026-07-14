@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQueries, useSuspenseQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Search,
@@ -31,6 +31,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { queryKeys } from "@/lib/query-keys";
 
 export function HomeClient() {
   return (
@@ -166,7 +167,7 @@ function Paths() {
 function Featured() {
   const { t } = useI18n();
   const { data } = useSuspenseQuery({
-    queryKey: ["listings", "featured"],
+    queryKey: queryKeys.listings.featured,
     queryFn: () => listingsService.featured(),
   });
   return (
@@ -216,8 +217,14 @@ function Brands() {
 function Agencies() {
   const { t } = useI18n();
   const { data } = useSuspenseQuery({
-    queryKey: ["agencies", "verified"],
+    queryKey: queryKeys.agencies.verified,
     queryFn: () => agenciesService.verified(),
+  });
+  const inventoryQueries = useQueries({
+    queries: data.map((agency) => ({
+      queryKey: queryKeys.listings.byAgency(agency.id),
+      queryFn: () => listingsService.byAgency(agency.id),
+    })),
   });
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -227,8 +234,8 @@ function Agencies() {
         subtitle={t("agencies.subtitle")}
       />
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {data.map((a) => (
-          <AgencyCard key={a.id} a={a} />
+        {data.map((a, index) => (
+          <AgencyCard key={a.id} a={a} vehicleCount={inventoryQueries[index].data?.length ?? 0} />
         ))}
       </div>
     </section>
@@ -297,7 +304,7 @@ function Trust() {
 function Recent() {
   const { t } = useI18n();
   const { data } = useSuspenseQuery({
-    queryKey: ["listings", "recent"],
+    queryKey: queryKeys.listings.recent(6),
     queryFn: () => listingsService.recent(6),
   });
   return (

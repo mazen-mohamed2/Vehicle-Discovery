@@ -4,6 +4,7 @@ import { QueryClient, HydrationBoundary, dehydrate } from "@tanstack/react-query
 import { agenciesService } from "@/services/agencies.service";
 import { listingsService } from "@/services/listings.service";
 import { DealerDetailClient } from "./dealer-detail-client";
+import { queryKeys } from "@/lib/query-keys";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -24,12 +25,12 @@ export default async function DealerDetailPage({ params }: Props) {
 
   const queryClient = new QueryClient();
   await queryClient.prefetchQuery({
-    queryKey: ["agency", id],
+    queryKey: queryKeys.agencies.detail(id),
     queryFn: () => agenciesService.byId(id),
   });
   await queryClient.prefetchQuery({
-    queryKey: ["listings", "agency"],
-    queryFn: () => listingsService.byAgency(),
+    queryKey: queryKeys.listings.byAgency(id),
+    queryFn: () => listingsService.byAgency(id),
   });
 
   return (

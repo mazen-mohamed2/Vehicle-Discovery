@@ -3,35 +3,57 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Heart, MapPin, Gauge, ShieldCheck, Star } from "lucide-react";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Favorite } from "@/lib/types";
 import type { VehicleListing } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
 import { favoritesService } from "@/services/favorites.service";
 import { cn } from "@/lib/utils";
+import { queryKeys } from "@/lib/query-keys";
 
 export function VehicleCard({ v }: { v: VehicleListing }) {
   const { t, locale } = useI18n();
-  const [fav, setFav] = useState(() => favoritesService.has(v.id));
-
-  const toggle = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (fav) {
-      favoritesService.remove(v.id);
-      setFav(false);
-    } else {
-      favoritesService.add(v.id);
-      setFav(true);
-    }
-  };
+  const queryClient = useQueryClient();
+  const { data: favorites = [] } = useQuery({
+    queryKey: queryKeys.favorites.all,
+    queryFn: favoritesService.list,
+  });
+  const fav = favorites.some((favorite) => favorite.listingId === v.id);
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (fav) await favoritesService.remove(v.id);
+      else await favoritesService.add(v.id);
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.favorites.all });
+      const previous = queryClient.getQueryData<Favorite[]>(queryKeys.favorites.all) ?? [];
+      queryClient.setQueryData<Favorite[]>(
+        queryKeys.favorites.all,
+        fav
+          ? previous.filter((favorite) => favorite.listingId !== v.id)
+          : [
+              ...previous,
+              {
+                id: `optimistic_${v.id}`,
+                userId: "me",
+                listingId: v.id,
+                createdAt: new Date().toISOString(),
+              },
+            ],
+      );
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      queryClient.setQueryData(queryKeys.favorites.all, context?.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.favorites.all }),
+  });
 
   const priceFmt = new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US").format(v.price);
   const kmFmt = new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US").format(v.mileage);
 
   return (
-    <Link
-      href={`/vehicles/${v.id}`}
-      className="group relative flex flex-col overflow-hidden rounded-2xl surface-card shadow-card transition-all hover:-translate-y-1 hover:shadow-elegant"
-    >
+    <article className="group relative flex flex-col overflow-hidden rounded-2xl surface-card shadow-card transition-all hover:-translate-y-1 hover:shadow-elegant">
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         <Image
           src={v.images[0].url}
@@ -56,10 +78,14 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
             )}
           </div>
           <button
-            onClick={toggle}
-            aria-label="favorite"
+            type="button"
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending}
+            aria-label={fav ? t("favorites.remove") : t("favorites.add")}
+            aria-pressed={fav}
             className={cn(
-              "grid h-8 w-8 place-items-center rounded-full bg-background/90 backdrop-blur border border-border transition-colors",
+              "relative z-10",
+              "grid h-8 w-8 place-items-center rounded-full bg-background/90 backdrop-blur border border-border transition-colors disabled:cursor-wait disabled:opacity-60",
               fav ? "text-destructive" : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -83,7 +109,11 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h3 className="truncate text-sm font-bold text-foreground">{v.title}</h3>
+            <h3 className="truncate text-sm font-bold text-foreground">
+              <Link href={`/vehicles/${v.id}`} className="after:absolute after:inset-0 after:z-0">
+                {v.title}
+              </Link>
+            </h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {v.year} · {v.make}
             </p>
@@ -111,6 +141,6 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
           </div>
         </div>
       </div>
-    </Link>
+    </article>
   );
 }

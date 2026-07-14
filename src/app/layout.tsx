@@ -1,21 +1,6 @@
 import type { Metadata } from "next";
-import { Cairo, Tajawal } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-
-const cairo = Cairo({
-  subsets: ["arabic", "latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-  variable: "--font-cairo",
-  display: "swap",
-});
-
-const tajawal = Tajawal({
-  subsets: ["arabic", "latin"],
-  weight: ["400", "500", "700", "900"],
-  variable: "--font-tajawal",
-  display: "swap",
-});
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -50,7 +35,7 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl" className={`dark ${cairo.variable} ${tajawal.variable}`}>
+    <html lang="ar" dir="rtl" className="dark">
       <body>
         <Providers>{children}</Providers>
       </body>

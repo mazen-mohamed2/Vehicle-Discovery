@@ -12,6 +12,6 @@ export const listingsService = {
     delay(mockListings.find((l) => l.id === id)),
   byOwner: (): Promise<VehicleListing[]> =>
     delay(mockListings.filter((l) => l.sellerType === "individual")),
-  byAgency: (): Promise<VehicleListing[]> =>
-    delay(mockListings.filter((l) => l.sellerType === "agency")),
+  byAgency: (agencyId: string): Promise<VehicleListing[]> =>
+    delay(mockListings.filter((l) => l.sellerType === "agency" && l.sellerId === agencyId)),
 };

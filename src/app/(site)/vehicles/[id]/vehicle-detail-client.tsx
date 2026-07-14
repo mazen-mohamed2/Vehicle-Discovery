@@ -7,10 +7,11 @@ import { MapPin, Gauge, Fuel, Cog, ShieldCheck, ArrowLeft, Phone } from "lucide-
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { listingsService } from "@/services/listings.service";
+import { queryKeys } from "@/lib/query-keys";
 
 export function VehicleDetailClient({ id }: { id: string }) {
   const { data: v } = useSuspenseQuery({
-    queryKey: ["listing", id],
+    queryKey: queryKeys.listings.detail(id),
     queryFn: () => listingsService.byId(id),
   });
   const { t, locale } = useI18n();

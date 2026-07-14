@@ -6,16 +6,18 @@ import { VehicleCard } from "@/components/marketplace/VehicleCard";
 import { useI18n } from "@/lib/i18n";
 import { agenciesService } from "@/services/agencies.service";
 import { listingsService } from "@/services/listings.service";
+import { queryKeys } from "@/lib/query-keys";
+import { EmptyState } from "@/components/marketplace/CollectionStates";
 
 export function DealerDetailClient({ id }: { id: string }) {
   const { t } = useI18n();
   const { data: a } = useSuspenseQuery({
-    queryKey: ["agency", id],
+    queryKey: queryKeys.agencies.detail(id),
     queryFn: () => agenciesService.byId(id),
   });
   const { data: listings } = useSuspenseQuery({
-    queryKey: ["listings", "agency"],
-    queryFn: () => listingsService.byAgency(),
+    queryKey: queryKeys.listings.byAgency(id),
+    queryFn: () => listingsService.byAgency(id),
   });
 
   if (!a) return null;
@@ -51,7 +53,7 @@ export function DealerDetailClient({ id }: { id: string }) {
                   <span className="text-muted-foreground">{t("agency.deals")}</span>
                 </div>
                 <div>
-                  <span className="text-xl font-black">{a.vehicleCount}</span>{" "}
+                  <span className="text-xl font-black">{listings.length}</span>{" "}
                   <span className="text-muted-foreground">{t("agency.vehicles")}</span>
                 </div>
               </div>
@@ -62,9 +64,14 @@ export function DealerDetailClient({ id }: { id: string }) {
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <h2 className="mb-6 text-2xl font-black">{t("featured.title")}</h2>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {listings.map((v) => (
-            <VehicleCard key={v.id} v={v} />
-          ))}
+          {listings.length > 0 ? (
+            listings.map((v) => <VehicleCard key={v.id} v={v} />)
+          ) : (
+            <EmptyState
+              title={t("state.dealer.empty.title")}
+              description={t("state.dealer.empty.description")}
+            />
+          )}
         </div>
       </section>
     </>
