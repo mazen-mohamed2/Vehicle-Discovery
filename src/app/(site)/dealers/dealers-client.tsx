@@ -39,7 +39,11 @@ export function DealersClient() {
   };
   return (
     <>
-      <PageHeader eyebrow="Dealers" title={t("dealers.title")} subtitle={t("agencies.subtitle")} />
+      <PageHeader
+        eyebrow={t("eyebrow.dealers")}
+        title={t("dealers.title")}
+        subtitle={t("agencies.subtitle")}
+      />
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {isLoading || inventoryLoading ? (

@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import { ImportClient } from "./import-client";
+import { getRequestLocale, pageMetadata } from "@/lib/server-locale";
 
-export const metadata: Metadata = {
-  title: "الاستيراد الخاص — سهلة درج",
-  description: "قدّم طلب استيراد سيارتك واستقبل عروضاً تنافسية من وكلاء موثقين.",
-  alternates: { canonical: "/import" },
-  openGraph: { url: "/import" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const [title, description] = pageMetadata.import[locale];
+  return {
+    title,
+    description,
+    alternates: { canonical: "/import" },
+    openGraph: { title, description, url: "/import" },
+  };
+}
 
 export default function ImportPage() {
   return <ImportClient />;

@@ -14,16 +14,21 @@ export function RegisterClient() {
         <h1 className="text-2xl font-black">{t("auth.register.title")}</h1>
         <form className="mt-6 grid gap-4" onSubmit={(e) => e.preventDefault()}>
           <div className="grid gap-2">
-            <Label>Name</Label>
-            <Input />
+            <Label htmlFor="register-name">{t("form.name")}</Label>
+            <Input id="register-name" name="name" autoComplete="name" />
           </div>
           <div className="grid gap-2">
-            <Label>Email</Label>
-            <Input type="email" />
+            <Label htmlFor="register-email">{t("form.email")}</Label>
+            <Input id="register-email" name="email" type="email" autoComplete="email" />
           </div>
           <div className="grid gap-2">
-            <Label>Password</Label>
-            <Input type="password" />
+            <Label htmlFor="register-password">{t("form.password")}</Label>
+            <Input
+              id="register-password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+            />
           </div>
           <Button className="gradient-primary text-primary-foreground">
             {t("auth.register.title")}

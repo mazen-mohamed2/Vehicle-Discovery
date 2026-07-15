@@ -8,9 +8,10 @@ import { agenciesService } from "@/services/agencies.service";
 import { listingsService } from "@/services/listings.service";
 import { queryKeys } from "@/lib/query-keys";
 import { EmptyState } from "@/components/marketplace/CollectionStates";
+import { formatYear } from "@/lib/locale";
 
 export function DealerDetailClient({ id }: { id: string }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { data: a } = useSuspenseQuery({
     queryKey: queryKeys.agencies.detail(id),
     queryFn: () => agenciesService.byId(id),
@@ -45,7 +46,9 @@ export function DealerDetailClient({ id }: { id: string }) {
                   <MapPin className="h-4 w-4" />
                   {a.location}
                 </span>
-                <span>Since {a.since}</span>
+                <span>
+                  {t("agency.since")} {formatYear(a.since, locale)}
+                </span>
               </div>
               <div className="mt-4 flex gap-6 text-sm">
                 <div>

@@ -4,13 +4,18 @@ import { agenciesService } from "@/services/agencies.service";
 import { DealersClient } from "./dealers-client";
 import { queryKeys } from "@/lib/query-keys";
 import { listingsService } from "@/services/listings.service";
+import { getRequestLocale, pageMetadata } from "@/lib/server-locale";
 
-export const metadata: Metadata = {
-  title: "المعارض والوكلاء — سهلة درج",
-  description: "وكلاء ومعارض معتمدون بسمعة موثقة على سهلة درج.",
-  alternates: { canonical: "/dealers" },
-  openGraph: { url: "/dealers" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const [title, description] = pageMetadata.dealers[locale];
+  return {
+    title,
+    description,
+    alternates: { canonical: "/dealers" },
+    openGraph: { title, description, url: "/dealers" },
+  };
+}
 
 export default async function DealersPage() {
   const queryClient = new QueryClient();

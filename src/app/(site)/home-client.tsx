@@ -32,6 +32,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { queryKeys } from "@/lib/query-keys";
+import { formatNumber } from "@/lib/locale";
 
 export function HomeClient() {
   return (
@@ -89,6 +90,7 @@ function Hero() {
           <div className="flex flex-1 items-center gap-2 rounded-xl bg-secondary/60 px-3">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
+              aria-label={t("search.placeholder")}
               placeholder={t("search.placeholder")}
               className="h-12 border-0 bg-transparent shadow-none focus-visible:ring-0"
             />
@@ -134,7 +136,7 @@ function Paths() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
       <SectionHeader
-        eyebrow="Marketplace"
+        eyebrow={t("eyebrow.marketplace")}
         title={t("paths.title")}
         subtitle={t("paths.subtitle")}
       />
@@ -173,7 +175,7 @@ function Featured() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <SectionHeader
-        eyebrow="Featured"
+        eyebrow={t("eyebrow.featured")}
         title={t("featured.title")}
         subtitle={t("featured.subtitle")}
         action={
@@ -229,7 +231,7 @@ function Agencies() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <SectionHeader
-        eyebrow="Verified"
+        eyebrow={t("eyebrow.verified")}
         title={t("agencies.title")}
         subtitle={t("agencies.subtitle")}
       />
@@ -255,7 +257,7 @@ function ImportFlow() {
     <section className="relative overflow-hidden py-16 lg:py-24">
       <div className="absolute inset-0 -z-10 gradient-hero opacity-60" />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <SectionHeader eyebrow="Custom Import" title={t("import.how.title")} />
+        <SectionHeader eyebrow={t("eyebrow.import")} title={t("import.how.title")} />
         <div className="grid gap-4 md:grid-cols-5">
           {steps.map((s, i) => (
             <div key={i} className="relative rounded-2xl surface-card p-5 shadow-card">
@@ -285,7 +287,11 @@ function Trust() {
   ];
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <SectionHeader eyebrow="Trust" title={t("trust.title")} subtitle={t("trust.subtitle")} />
+      <SectionHeader
+        eyebrow={t("eyebrow.trust")}
+        title={t("trust.title")}
+        subtitle={t("trust.subtitle")}
+      />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {items.map((it, i) => (
           <div key={i} className="rounded-2xl surface-card p-6 shadow-card">
@@ -309,7 +315,7 @@ function Recent() {
   });
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <SectionHeader eyebrow="New" title={t("recent.title")} />
+      <SectionHeader eyebrow={t("eyebrow.new")} title={t("recent.title")} />
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {data.slice(0, 6).map((v) => (
           <VehicleCard key={v.id} v={v} />
@@ -321,7 +327,7 @@ function Recent() {
 
 function Stats() {
   const { t, locale } = useI18n();
-  const fmt = (n: number) => new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US").format(n);
+  const fmt = (n: number) => formatNumber(n, locale);
   const items = [
     { v: fmt(mockStats.listings) + "+", l: t("stats.listings") },
     { v: fmt(mockStats.agencies) + "+", l: t("stats.agencies") },

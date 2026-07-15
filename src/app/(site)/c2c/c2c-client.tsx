@@ -25,7 +25,7 @@ export function C2CClient() {
   });
   return (
     <>
-      <PageHeader eyebrow="C2C" title={t("c2c.title")} subtitle={t("path.c2c.desc")} />
+      <PageHeader eyebrow={t("eyebrow.c2c")} title={t("c2c.title")} subtitle={t("path.c2c.desc")} />
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {isLoading ? (

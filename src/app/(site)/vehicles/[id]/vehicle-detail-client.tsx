@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { listingsService } from "@/services/listings.service";
 import { queryKeys } from "@/lib/query-keys";
+import { formatCurrency, formatMileage, formatYear } from "@/lib/locale";
 
 export function VehicleDetailClient({ id }: { id: string }) {
   const { data: v } = useSuspenseQuery({
@@ -16,8 +17,8 @@ export function VehicleDetailClient({ id }: { id: string }) {
   });
   const { t, locale } = useI18n();
   if (!v) return null;
-  const price = new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US").format(v.price);
-  const km = new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US").format(v.mileage);
+  const price = formatCurrency(v.price, v.currency, locale);
+  const mileage = formatMileage(v.mileage, locale, t("card.km"));
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <Link
@@ -39,10 +40,10 @@ export function VehicleDetailClient({ id }: { id: string }) {
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { icon: Gauge, l: t("card.km"), v: km },
-              { icon: Fuel, l: "Fuel", v: v.fuel },
-              { icon: Cog, l: "Trans.", v: v.transmission },
-              { icon: MapPin, l: "Location", v: v.location },
+              { icon: Gauge, l: t("card.km"), v: mileage },
+              { icon: Fuel, l: t("vehicle.fuel"), v: t(`fuel.${v.fuel}`) },
+              { icon: Cog, l: t("vehicle.transmission"), v: t(`transmission.${v.transmission}`) },
+              { icon: MapPin, l: t("vehicle.location"), v: v.location },
             ].map((s, i) => (
               <div key={i} className="rounded-xl surface-card p-4">
                 <s.icon className="h-4 w-4 text-primary" />
@@ -56,11 +57,10 @@ export function VehicleDetailClient({ id }: { id: string }) {
           <div className="sticky top-24 rounded-2xl surface-card p-6 shadow-elegant">
             <h1 className="text-2xl font-black">{v.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {v.year} · {v.make} {v.model}
+              {formatYear(v.year, locale)} · {v.make} {v.model}
             </p>
             <p className="mt-4 text-3xl font-black bg-gradient-to-br from-primary to-primary-glow bg-clip-text text-transparent">
-              {price}{" "}
-              <span className="text-sm font-medium text-muted-foreground">{v.currency}</span>
+              {price}
             </p>
             <div className="mt-4 flex items-center gap-2 text-xs">
               {v.verified && (

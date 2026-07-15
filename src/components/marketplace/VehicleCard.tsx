@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n";
 import { favoritesService } from "@/services/favorites.service";
 import { cn } from "@/lib/utils";
 import { queryKeys } from "@/lib/query-keys";
+import { formatCurrency, formatMileage, formatYear } from "@/lib/locale";
 
 export function VehicleCard({ v }: { v: VehicleListing }) {
   const { t, locale } = useI18n();
@@ -49,8 +50,8 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
     onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.favorites.all }),
   });
 
-  const priceFmt = new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US").format(v.price);
-  const kmFmt = new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US").format(v.mileage);
+  const priceFmt = formatCurrency(v.price, v.currency, locale);
+  const mileage = formatMileage(v.mileage, locale, t("card.km"));
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-2xl surface-card shadow-card transition-all hover:-translate-y-1 hover:shadow-elegant">
@@ -115,14 +116,14 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
               </Link>
             </h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {v.year} · {v.make}
+              {formatYear(v.year, locale)} · {v.make}
             </p>
           </div>
         </div>
         <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Gauge className="h-3.5 w-3.5" />
-            {kmFmt} {t("card.km")}
+            {mileage}
           </span>
           <span className="inline-flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" />
@@ -134,10 +135,7 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
             <p className="text-[10px] uppercase text-muted-foreground">
               {v.sellerType === "agency" ? t("card.byAgency") : t("card.byOwner")}
             </p>
-            <p className="text-lg font-black text-foreground">
-              {priceFmt}{" "}
-              <span className="text-xs font-medium text-muted-foreground">{v.currency}</span>
-            </p>
+            <p className="text-lg font-black text-foreground">{priceFmt}</p>
           </div>
         </div>
       </div>

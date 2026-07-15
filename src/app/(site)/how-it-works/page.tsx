@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import { HowItWorksClient } from "./how-it-works-client";
+import { getRequestLocale, pageMetadata } from "@/lib/server-locale";
 
-export const metadata: Metadata = {
-  title: "كيف يعمل سهلة درج",
-  description: "كيف يعمل سوق السيارات سهلة درج: البحث، الحماية بالضمان، إتمام الصفقة، والتوصيل.",
-  alternates: { canonical: "/how-it-works" },
-  openGraph: { url: "/how-it-works" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const [title, description] = pageMetadata.how[locale];
+  return {
+    title,
+    description,
+    alternates: { canonical: "/how-it-works" },
+    openGraph: { title, description, url: "/how-it-works" },
+  };
+}
 
 export default function HowItWorksPage() {
   return <HowItWorksClient />;

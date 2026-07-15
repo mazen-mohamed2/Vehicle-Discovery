@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import { AboutClient } from "./about-client";
+import { getRequestLocale, pageMetadata } from "@/lib/server-locale";
 
-export const metadata: Metadata = {
-  title: "من نحن — سهلة درج",
-  description: "سهلة درج منصة موثوقة تجمع مشتري السيارات، البائعين، والوكلاء في تجربة واحدة آمنة.",
-  alternates: { canonical: "/about" },
-  openGraph: { url: "/about" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const [title, description] = pageMetadata.about[locale];
+  return {
+    title,
+    description,
+    alternates: { canonical: "/about" },
+    openGraph: { title, description, url: "/about" },
+  };
+}
 
 export default function AboutPage() {
   return <AboutClient />;

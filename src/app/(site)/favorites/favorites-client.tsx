@@ -29,7 +29,7 @@ export function FavoritesClient() {
 
   return (
     <>
-      <PageHeader eyebrow="Saved" title={t("favorites.title")} />
+      <PageHeader eyebrow={t("eyebrow.saved")} title={t("favorites.title")} />
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         {favoritesQuery.isLoading || listingsQuery.isLoading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

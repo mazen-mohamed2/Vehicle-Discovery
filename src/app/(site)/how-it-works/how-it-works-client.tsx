@@ -7,14 +7,18 @@ import { Search, ShieldCheck, HandshakeIcon, Truck } from "lucide-react";
 export function HowItWorksClient() {
   const { t } = useI18n();
   const steps = [
-    { icon: Search, title: "ابحث", desc: "تصفح آلاف السيارات من الأفراد والوكلاء" },
-    { icon: ShieldCheck, title: "تحقق", desc: "بائع موثق وسيارة مفحوصة" },
-    { icon: HandshakeIcon, title: "اتفق", desc: "دفع محمي بالضمان حتى الاستلام" },
-    { icon: Truck, title: "استلم", desc: "توصيل آمن ومتابعة كاملة" },
+    { icon: Search, title: t("how.search.title"), desc: t("how.search.desc") },
+    { icon: ShieldCheck, title: t("how.verify.title"), desc: t("how.verify.desc") },
+    { icon: HandshakeIcon, title: t("how.agree.title"), desc: t("how.agree.desc") },
+    { icon: Truck, title: t("how.receive.title"), desc: t("how.receive.desc") },
   ];
   return (
     <>
-      <PageHeader eyebrow="Guide" title={t("how.title")} subtitle={t("brand.tagline")} />
+      <PageHeader
+        eyebrow={t("eyebrow.guide")}
+        title={t("how.title")}
+        subtitle={t("brand.tagline")}
+      />
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {steps.map((s, i) => (

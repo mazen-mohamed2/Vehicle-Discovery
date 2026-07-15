@@ -7,7 +7,7 @@ export type Theme = "light" | "dark";
 
 type Dict = Record<string, string>;
 
-const ar: Dict = {
+const ar = {
   "brand.name": "سهلة درج",
   "brand.tagline": "سوق السيارات الموثوق",
   "nav.c2c": "بين الأفراد",
@@ -98,6 +98,8 @@ const ar: Dict = {
   "import.title": "الاستيراد الخاص",
   "how.title": "كيف يعمل سهلة درج",
   "about.title": "من نحن",
+  "about.description":
+    "سهلة درج منصة سيارات متكاملة تجعل شراء وبيع السيارات في مصر والمنطقة العربية أكثر أماناً وشفافية. نجمع الأفراد والوكلاء الموثقين وخدمة الاستيراد الخاص في تجربة واحدة محمية.",
   "contact.title": "تواصل معنا",
   "auth.login.title": "تسجيل الدخول",
   "auth.register.title": "إنشاء حساب جديد",
@@ -118,9 +120,65 @@ const ar: Dict = {
   "state.dealer.empty.description": "لم يضف هذا الوكيل أي سيارات متاحة بعد.",
   "common.soon": "قريباً",
   "common.explore": "استكشف",
+  "eyebrow.marketplace": "السوق",
+  "eyebrow.featured": "مميز",
+  "eyebrow.verified": "موثق",
+  "eyebrow.import": "استيراد خاص",
+  "eyebrow.trust": "الثقة",
+  "eyebrow.new": "الأحدث",
+  "eyebrow.about": "عن المنصة",
+  "eyebrow.contact": "تواصل معنا",
+  "eyebrow.dealers": "الوكلاء",
+  "eyebrow.c2c": "سوق الأفراد",
+  "eyebrow.guide": "الدليل",
+  "eyebrow.saved": "المحفوظات",
+  "form.name": "الاسم",
+  "form.email": "البريد الإلكتروني",
+  "form.password": "كلمة المرور",
+  "form.message": "الرسالة",
+  "form.send": "إرسال",
+  "form.make": "الماركة",
+  "form.model": "الموديل",
+  "form.year": "السنة",
+  "form.budget": "الميزانية (جنيه مصري)",
+  "vehicle.fuel": "نوع الوقود",
+  "vehicle.transmission": "ناقل الحركة",
+  "vehicle.location": "الموقع",
+  "fuel.gasoline": "بنزين",
+  "fuel.diesel": "ديزل",
+  "fuel.hybrid": "هجين",
+  "fuel.electric": "كهربائي",
+  "transmission.automatic": "أوتوماتيكي",
+  "transmission.manual": "يدوي",
+  "agency.since": "منذ",
+  "a11y.switchLanguage": "تغيير اللغة",
+  "a11y.toggleTheme": "تبديل المظهر",
+  "a11y.menu": "القائمة",
+  "a11y.loading": "جارٍ التحميل",
+  "legal.terms": "الشروط",
+  "legal.privacy": "الخصوصية",
+  "region.currency": "مصر · جنيه مصري",
+  "error.title": "تعذر تحميل الصفحة",
+  "error.description": "حدث خطأ. حاول مرة أخرى أو ارجع إلى الصفحة الرئيسية.",
+  "error.tryAgain": "حاول مرة أخرى",
+  "error.home": "الصفحة الرئيسية",
+  "notFound.title": "الصفحة غير موجودة",
+  "notFound.description": "الصفحة التي تبحث عنها غير موجودة.",
+  "notFound.vehicle": "السيارة غير موجودة",
+  "notFound.dealer": "الوكيل غير موجود",
+  "notFound.backVehicles": "العودة إلى السيارات",
+  "notFound.backDealers": "العودة إلى الوكلاء",
+  "how.search.title": "ابحث",
+  "how.search.desc": "تصفح آلاف السيارات من الأفراد والوكلاء",
+  "how.verify.title": "تحقق",
+  "how.verify.desc": "بائع موثق وسيارة مفحوصة",
+  "how.agree.title": "اتفق",
+  "how.agree.desc": "دفع محمي بالضمان حتى الاستلام",
+  "how.receive.title": "استلم",
+  "how.receive.desc": "توصيل آمن ومتابعة كاملة",
 };
 
-const en: Dict = {
+const en: Record<keyof typeof ar, string> = {
   "brand.name": "Sahla Daraj",
   "brand.tagline": "The trusted automotive marketplace",
   "nav.c2c": "Individuals",
@@ -211,6 +269,8 @@ const en: Dict = {
   "import.title": "Custom import",
   "how.title": "How Sahla Daraj works",
   "about.title": "About us",
+  "about.description":
+    "Sahla Daraj is a complete automotive platform that makes buying and selling vehicles in Egypt and the Arab region safer and more transparent. We bring individuals, verified dealers, and custom import together in one protected experience.",
   "contact.title": "Contact us",
   "auth.login.title": "Log in",
   "auth.register.title": "Create an account",
@@ -231,6 +291,62 @@ const en: Dict = {
   "state.dealer.empty.description": "This dealer has not added any available vehicles yet.",
   "common.soon": "Coming soon",
   "common.explore": "Explore",
+  "eyebrow.marketplace": "Marketplace",
+  "eyebrow.featured": "Featured",
+  "eyebrow.verified": "Verified",
+  "eyebrow.import": "Custom Import",
+  "eyebrow.trust": "Trust",
+  "eyebrow.new": "New",
+  "eyebrow.about": "About",
+  "eyebrow.contact": "Get in touch",
+  "eyebrow.dealers": "Dealers",
+  "eyebrow.c2c": "C2C Marketplace",
+  "eyebrow.guide": "Guide",
+  "eyebrow.saved": "Saved",
+  "form.name": "Name",
+  "form.email": "Email",
+  "form.password": "Password",
+  "form.message": "Message",
+  "form.send": "Send",
+  "form.make": "Make",
+  "form.model": "Model",
+  "form.year": "Year",
+  "form.budget": "Budget (EGP)",
+  "vehicle.fuel": "Fuel type",
+  "vehicle.transmission": "Transmission",
+  "vehicle.location": "Location",
+  "fuel.gasoline": "Gasoline",
+  "fuel.diesel": "Diesel",
+  "fuel.hybrid": "Hybrid",
+  "fuel.electric": "Electric",
+  "transmission.automatic": "Automatic",
+  "transmission.manual": "Manual",
+  "agency.since": "Since",
+  "a11y.switchLanguage": "Switch language",
+  "a11y.toggleTheme": "Toggle theme",
+  "a11y.menu": "Menu",
+  "a11y.loading": "Loading",
+  "legal.terms": "Terms",
+  "legal.privacy": "Privacy",
+  "region.currency": "Egypt · EGP",
+  "error.title": "This page didn't load",
+  "error.description": "Something went wrong. Try again or return home.",
+  "error.tryAgain": "Try again",
+  "error.home": "Go home",
+  "notFound.title": "Page not found",
+  "notFound.description": "The page you're looking for doesn't exist.",
+  "notFound.vehicle": "Vehicle not found",
+  "notFound.dealer": "Dealer not found",
+  "notFound.backVehicles": "Back to vehicles",
+  "notFound.backDealers": "Back to dealers",
+  "how.search.title": "Search",
+  "how.search.desc": "Browse thousands of vehicles from individuals and dealers",
+  "how.verify.title": "Verify",
+  "how.verify.desc": "Choose a verified seller and inspected vehicle",
+  "how.agree.title": "Agree",
+  "how.agree.desc": "Use escrow-protected payment until delivery",
+  "how.receive.title": "Receive",
+  "how.receive.desc": "Get secure delivery and complete tracking",
 };
 
 const dicts: Record<Locale, Dict> = { ar, en };
@@ -246,9 +362,29 @@ type Ctx = {
 
 const I18nContext = createContext<Ctx | null>(null);
 
-export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("ar");
-  const [theme, setThemeState] = useState<Theme>("dark");
+export function I18nProvider({
+  children,
+  initialLocale = "ar",
+  initialTheme = "dark",
+}: {
+  children: ReactNode;
+  initialLocale?: Locale;
+  initialTheme?: Theme;
+}) {
+  const [locale, setLocaleState] = useState<Locale>(initialLocale);
+  const [theme, setThemeState] = useState<Theme>(initialTheme);
+
+  const setLocale = (next: Locale) => {
+    setLocaleState(next);
+    document.cookie = `sd-locale=${next}; path=/; max-age=31536000; samesite=lax`;
+    localStorage.setItem("sd-locale", next);
+  };
+
+  const setTheme = (next: Theme) => {
+    setThemeState(next);
+    document.cookie = `sd-theme=${next}; path=/; max-age=31536000; samesite=lax`;
+    localStorage.setItem("sd-theme", next);
+  };
 
   useEffect(() => {
     const html = document.documentElement;
@@ -264,8 +400,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     locale,
     dir: locale === "ar" ? "rtl" : "ltr",
     theme,
-    setLocale: setLocaleState,
-    setTheme: setThemeState,
+    setLocale,
+    setTheme,
     t: (key) => dicts[locale][key] ?? key,
   };
 

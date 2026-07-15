@@ -26,7 +26,7 @@ export function VehiclesClient() {
   return (
     <>
       <PageHeader
-        eyebrow="Marketplace"
+        eyebrow={t("eyebrow.marketplace")}
         title={t("vehicles.title")}
         subtitle={t("featured.subtitle")}
       />

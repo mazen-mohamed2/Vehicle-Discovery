@@ -35,6 +35,7 @@ export function SiteHeader() {
             <Link
               key={l.href}
               href={l.href}
+              aria-current={pathname === l.href ? "page" : undefined}
               className={cn(
                 "rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
                 pathname === l.href && "bg-secondary text-foreground",
@@ -49,7 +50,7 @@ export function SiteHeader() {
           <button
             onClick={() => setLocale(locale === "ar" ? "en" : "ar")}
             className="hidden sm:inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            aria-label="Switch language"
+            aria-label={t("a11y.switchLanguage")}
           >
             <Globe className="h-4 w-4" />
             {locale === "ar" ? "EN" : "ع"}
@@ -57,7 +58,7 @@ export function SiteHeader() {
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            aria-label="Toggle theme"
+            aria-label={t("a11y.toggleTheme")}
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
@@ -86,7 +87,8 @@ export function SiteHeader() {
           <button
             onClick={() => setOpen((o) => !o)}
             className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg text-foreground hover:bg-secondary"
-            aria-label="Menu"
+            aria-label={t("a11y.menu")}
+            aria-expanded={open}
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -100,6 +102,7 @@ export function SiteHeader() {
               <Link
                 key={l.href}
                 href={l.href}
+                aria-current={pathname === l.href ? "page" : undefined}
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
               >
@@ -122,6 +125,7 @@ export function SiteHeader() {
               <button
                 onClick={() => setLocale(locale === "ar" ? "en" : "ar")}
                 className="flex items-center gap-1.5 rounded-lg px-3 py-2 hover:bg-secondary"
+                aria-label={t("a11y.switchLanguage")}
               >
                 <Globe className="h-4 w-4" />
                 {locale === "ar" ? "English" : "العربية"}
@@ -129,6 +133,7 @@ export function SiteHeader() {
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="flex items-center gap-1.5 rounded-lg px-3 py-2 hover:bg-secondary"
+                aria-label={t("a11y.toggleTheme")}
               >
                 {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>

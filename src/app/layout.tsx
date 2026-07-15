@@ -1,43 +1,65 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import { cookies } from "next/headers";
+import type { Locale, Theme } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/server-locale";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: "سهلة درج — سوق السيارات الموثوق | Sahla Daraj",
-    template: "%s | Sahla Daraj",
-  },
-  description:
-    "سهلة درج — سوق سيارات متكامل في مصر والمنطقة العربية: سيارات الأفراد، وكلاء موثقون، واستيراد خاص محمي بالضمان.",
-  authors: [{ name: "Sahla Daraj" }],
-  icons: {
-    icon: "/favicon.ico",
-  },
-  openGraph: {
-    title: "سهلة درج — Sahla Daraj",
-    description: "سوق السيارات المتكامل: أفراد، وكلاء، واستيراد خاص محمي بالضمان.",
-    type: "website",
-    siteName: "Sahla Daraj",
-    url: siteUrl,
-  },
-  twitter: {
-    card: "summary_large_image",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const title =
+    locale === "ar"
+      ? "سهلة درج — سوق السيارات الموثوق"
+      : "Sahla Daraj — The trusted automotive marketplace";
+  const description =
+    locale === "ar"
+      ? "سوق سيارات متكامل للأفراد والوكلاء والاستيراد الخاص."
+      : "A complete marketplace for individual vehicles, verified dealers, and custom import.";
+  return {
+    metadataBase: new URL(siteUrl),
+    title: {
+      default: title,
+      template: "%s | Sahla Daraj",
+    },
+    description,
+    authors: [{ name: "Sahla Daraj" }],
+    icons: {
+      icon: "/favicon.ico",
+    },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      siteName: "Sahla Daraj",
+      url: siteUrl,
+    },
+    twitter: {
+      card: "summary_large_image",
+    },
+  };
+}
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const locale: Locale = cookieStore.get("sd-locale")?.value === "en" ? "en" : "ar";
+  const theme: Theme = cookieStore.get("sd-theme")?.value === "light" ? "light" : "dark";
   return (
-    <html lang="ar" dir="rtl" className="dark">
+    <html
+      lang={locale}
+      dir={locale === "ar" ? "rtl" : "ltr"}
+      className={theme === "dark" ? "dark" : ""}
+    >
       <body>
-        <Providers>{children}</Providers>
+        <Providers locale={locale} theme={theme}>
+          {children}
+        </Providers>
       </body>
     </html>
   );

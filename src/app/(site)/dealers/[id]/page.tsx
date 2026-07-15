@@ -5,14 +5,19 @@ import { agenciesService } from "@/services/agencies.service";
 import { listingsService } from "@/services/listings.service";
 import { DealerDetailClient } from "./dealer-detail-client";
 import { queryKeys } from "@/lib/query-keys";
+import { getRequestLocale } from "@/lib/server-locale";
 
 type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const agency = await agenciesService.byId(id);
+  const locale = await getRequestLocale();
+  const brand = locale === "ar" ? "سهلة درج" : "Sahla Daraj";
   return {
-    title: agency ? `${agency.name} — سهلة درج` : `وكيل ${id} — سهلة درج`,
+    title: agency
+      ? `${agency.name} — ${brand}`
+      : `${locale === "ar" ? "وكيل" : "Dealer"} ${id} — ${brand}`,
     alternates: { canonical: `/dealers/${id}` },
     openGraph: { url: `/dealers/${id}` },
   };

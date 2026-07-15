@@ -1,11 +1,15 @@
+"use client";
+
 import { DealerGridSkeleton, VehicleGridSkeleton } from "@/components/marketplace/CollectionStates";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useI18n } from "@/lib/i18n";
 
 export default function SiteLoading() {
+  const { t } = useI18n();
   return (
     <div
       className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8"
-      aria-label="Loading"
+      aria-label={t("a11y.loading")}
       aria-busy="true"
     >
       <Skeleton className="mb-8 h-10 w-64" />

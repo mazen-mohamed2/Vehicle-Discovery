@@ -19,7 +19,7 @@ export function ImportClient() {
   return (
     <>
       <PageHeader
-        eyebrow="Custom import"
+        eyebrow={t("eyebrow.import")}
         title={t("import.title")}
         subtitle={t("path.import.desc")}
       />
@@ -46,21 +46,21 @@ export function ImportClient() {
           </div>
           <form className="grid gap-4" onSubmit={(e) => e.preventDefault()}>
             <div className="grid gap-2">
-              <Label>Make</Label>
-              <Input placeholder="BMW" />
+              <Label htmlFor="import-make">{t("form.make")}</Label>
+              <Input id="import-make" name="make" placeholder="BMW" />
             </div>
             <div className="grid gap-2">
-              <Label>Model</Label>
-              <Input placeholder="530i" />
+              <Label htmlFor="import-model">{t("form.model")}</Label>
+              <Input id="import-model" name="model" placeholder="530i" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label>Year</Label>
-                <Input type="number" placeholder="2024" />
+                <Label htmlFor="import-year">{t("form.year")}</Label>
+                <Input id="import-year" name="year" type="number" placeholder="2024" />
               </div>
               <div className="grid gap-2">
-                <Label>Budget (EGP)</Label>
-                <Input type="number" placeholder="2500000" />
+                <Label htmlFor="import-budget">{t("form.budget")}</Label>
+                <Input id="import-budget" name="budget" type="number" placeholder="2500000" />
               </div>
             </div>
             <Button className="gradient-primary text-primary-foreground shadow-elegant">

@@ -37,8 +37,8 @@ export function SiteFooter() {
     {
       title: t("footer.legal"),
       links: [
-        { href: "/about", label: "Terms" },
-        { href: "/about", label: "Privacy" },
+        { href: "/about", label: t("legal.terms") },
+        { href: "/about", label: t("legal.privacy") },
       ],
     },
   ] as const;
@@ -60,6 +60,7 @@ export function SiteFooter() {
               <p className="mt-1 text-xs text-muted-foreground">{t("footer.newsletter.desc")}</p>
               <form className="mt-3 flex gap-2" onSubmit={(e) => e.preventDefault()}>
                 <Input
+                  aria-label={t("footer.newsletter.placeholder")}
                   type="email"
                   placeholder={t("footer.newsletter.placeholder")}
                   className="h-10"
@@ -93,7 +94,7 @@ export function SiteFooter() {
             © {year} {t("brand.name")}. {t("footer.rights")}.
           </p>
           <div className="flex items-center gap-4">
-            <span>EG · EGP</span>
+            <span>{t("region.currency")}</span>
           </div>
         </div>
       </div>

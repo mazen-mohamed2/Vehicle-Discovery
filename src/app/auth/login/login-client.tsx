@@ -15,12 +15,17 @@ export function LoginClient() {
         <p className="mt-1 text-sm text-muted-foreground">{t("brand.tagline")}</p>
         <form className="mt-6 grid gap-4" onSubmit={(e) => e.preventDefault()}>
           <div className="grid gap-2">
-            <Label>Email</Label>
-            <Input type="email" />
+            <Label htmlFor="login-email">{t("form.email")}</Label>
+            <Input id="login-email" name="email" type="email" autoComplete="email" />
           </div>
           <div className="grid gap-2">
-            <Label>Password</Label>
-            <Input type="password" />
+            <Label htmlFor="login-password">{t("form.password")}</Label>
+            <Input
+              id="login-password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+            />
           </div>
           <Button className="gradient-primary text-primary-foreground">
             {t("auth.login.title")}

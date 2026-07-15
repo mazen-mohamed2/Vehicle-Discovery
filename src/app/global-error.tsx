@@ -10,12 +10,26 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const isArabic = typeof document !== "undefined" && document.cookie.includes("sd-locale=ar");
+  const copy = isArabic
+    ? {
+        title: "تعذر تحميل الصفحة",
+        description: "حدث خطأ من جانبنا. يمكنك المحاولة مرة أخرى أو العودة إلى الصفحة الرئيسية.",
+        retry: "حاول مرة أخرى",
+        home: "الصفحة الرئيسية",
+      }
+    : {
+        title: "This page didn't load",
+        description: "Something went wrong on our end. You can try again or head back home.",
+        retry: "Try again",
+        home: "Go home",
+      };
   useEffect(() => {
     reportLovableError(error, { boundary: "nextjs_global_error_component" });
   }, [error]);
 
   return (
-    <html lang="en" dir="ltr">
+    <html lang={isArabic ? "ar" : "en"} dir={isArabic ? "rtl" : "ltr"}>
       <body>
         <div
           style={{
@@ -30,12 +44,8 @@ export default function GlobalError({
           }}
         >
           <div style={{ maxWidth: "28rem", width: "100%", textAlign: "center", padding: "2rem" }}>
-            <h1 style={{ fontSize: "1.25rem", margin: "0 0 0.5rem" }}>
-              This page didn&apos;t load
-            </h1>
-            <p style={{ color: "#4b5563", margin: "0 0 1.5rem" }}>
-              Something went wrong on our end. You can try refreshing or head back home.
-            </p>
+            <h1 style={{ fontSize: "1.25rem", margin: "0 0 0.5rem" }}>{copy.title}</h1>
+            <p style={{ color: "#4b5563", margin: "0 0 1.5rem" }}>{copy.description}</p>
             <div
               style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}
             >
@@ -50,7 +60,7 @@ export default function GlobalError({
                   border: "1px solid transparent",
                 }}
               >
-                Try again
+                {copy.retry}
               </button>
               <a
                 href="/"
@@ -63,7 +73,7 @@ export default function GlobalError({
                   border: "1px solid #d1d5db",
                 }}
               >
-                Go home
+                {copy.home}
               </a>
             </div>
           </div>
