@@ -3,6 +3,43 @@ export type SellerType = "individual" | "agency";
 export type Condition = "new" | "used";
 export type FuelType = "gasoline" | "diesel" | "hybrid" | "electric";
 export type Transmission = "automatic" | "manual";
+export type VehicleSort =
+  "newest" | "oldest" | "price-asc" | "price-desc" | "mileage-asc" | "mileage-desc";
+
+export interface VehicleDiscoveryParams {
+  q?: string;
+  make?: string;
+  model?: string;
+  year?: number;
+  priceMin?: number;
+  priceMax?: number;
+  mileageMin?: number;
+  mileageMax?: number;
+  fuel?: FuelType;
+  transmission?: Transmission;
+  condition?: Condition;
+  sellerType?: SellerType;
+  location?: string;
+  sort: VehicleSort;
+  page: number;
+  pageSize: number;
+}
+
+export interface VehicleDiscoveryResult {
+  items: VehicleListing[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  facets: {
+    makes: string[];
+    models: string[];
+    years: number[];
+    locations: string[];
+    priceRange: [number, number];
+    mileageRange: [number, number];
+  };
+}
 
 export interface Agency {
   id: string;

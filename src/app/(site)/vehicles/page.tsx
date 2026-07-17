@@ -4,6 +4,9 @@ import { listingsService } from "@/services/listings.service";
 import { VehiclesClient } from "./vehicles-client";
 import { queryKeys } from "@/lib/query-keys";
 import { getRequestLocale, pageMetadata } from "@/lib/server-locale";
+import { parseDiscoveryParams } from "@/lib/vehicle-discovery";
+
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
@@ -16,11 +19,17 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function VehiclesPage() {
+export default async function VehiclesPage({ searchParams }: Props) {
+  const raw = await searchParams;
+  const urlParams = new URLSearchParams();
+  Object.entries(raw).forEach(([key, value]) => {
+    if (typeof value === "string") urlParams.set(key, value);
+  });
+  const params = parseDiscoveryParams(urlParams);
   const queryClient = new QueryClient();
   await queryClient.prefetchQuery({
-    queryKey: queryKeys.listings.all,
-    queryFn: () => listingsService.list(),
+    queryKey: queryKeys.listings.discovery(params),
+    queryFn: () => listingsService.discover(params),
   });
 
   return (

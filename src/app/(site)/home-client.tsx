@@ -3,6 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useQueries, useSuspenseQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Search,
@@ -33,6 +35,7 @@ import {
 } from "@/components/ui/accordion";
 import { queryKeys } from "@/lib/query-keys";
 import { formatNumber } from "@/lib/locale";
+import { canonicalMake } from "@/lib/vehicle-discovery";
 
 export function HomeClient() {
   return (
@@ -55,6 +58,15 @@ export function HomeClient() {
 
 function Hero() {
   const { t } = useI18n();
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const submitSearch = () => {
+    const value = search.trim();
+    if (!value) return router.push("/vehicles");
+    const brand = mockBrands.find((item) => item.toLowerCase() === value.toLowerCase());
+    const params = new URLSearchParams(brand ? { make: canonicalMake(brand) } : { q: value });
+    router.push(`/vehicles?${params.toString()}`);
+  };
   return (
     <section className="relative overflow-hidden">
       <div className="absolute inset-0 -z-10">
@@ -84,13 +96,18 @@ function Hero() {
         </div>
 
         <form
-          onSubmit={(e) => e.preventDefault()}
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitSearch();
+          }}
           className="mt-8 flex flex-col gap-3 rounded-2xl surface-card p-3 shadow-elegant sm:flex-row sm:items-center"
         >
           <div className="flex flex-1 items-center gap-2 rounded-xl bg-secondary/60 px-3">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
               aria-label={t("search.placeholder")}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
               placeholder={t("search.placeholder")}
               className="h-12 border-0 bg-transparent shadow-none focus-visible:ring-0"
             />
@@ -205,7 +222,7 @@ function Brands() {
         {mockBrands.map((b) => (
           <Link
             key={b}
-            href="/vehicles"
+            href={`/vehicles?make=${encodeURIComponent(canonicalMake(b))}`}
             className="group flex h-20 items-center justify-center rounded-xl surface-card px-3 text-sm font-bold text-muted-foreground transition-all hover:-translate-y-0.5 hover:text-foreground hover:shadow-card"
           >
             {b}
