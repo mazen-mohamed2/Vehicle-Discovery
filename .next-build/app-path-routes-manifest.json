@@ -3,15 +3,15 @@
   "/_not-found/page": "/_not-found",
   "/(site)/about/page": "/about",
   "/(site)/c2c/page": "/c2c",
-  "/(site)/dealers/[id]/page": "/dealers/[id]",
   "/(site)/contact/page": "/contact",
-  "/(site)/dealers/page": "/dealers",
   "/(site)/favorites/page": "/favorites",
-  "/(site)/how-it-works/page": "/how-it-works",
+  "/(site)/dealers/[id]/page": "/dealers/[id]",
+  "/(site)/dealers/page": "/dealers",
   "/(site)/import/page": "/import",
-  "/(site)/vehicles/[id]/page": "/vehicles/[id]",
+  "/(site)/how-it-works/page": "/how-it-works",
   "/(site)/page": "/",
-  "/auth/login/page": "/auth/login",
+  "/(site)/vehicles/[id]/page": "/vehicles/[id]",
   "/(site)/vehicles/page": "/vehicles",
-  "/auth/register/page": "/auth/register"
+  "/auth/register/page": "/auth/register",
+  "/auth/login/page": "/auth/login"
 }
