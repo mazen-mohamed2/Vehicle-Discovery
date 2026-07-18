@@ -208,7 +208,18 @@ const baseListings: Omit<VehicleListing, "id" | "images">[] = [
 export const mockListings: VehicleListing[] = baseListings.map((l, i) => ({
   ...l,
   id: `v${i + 1}`,
-  images: [{ id: `m${i}`, url: images[i % images.length], alt: l.title }],
+  images: images.map((url, imageIndex) => ({
+    id: `m${i}-${imageIndex}`,
+    url: images[(i + imageIndex) % images.length],
+    alt: `${l.title} ${imageIndex + 1}`,
+  })),
+  updatedAt: i % 2 === 0 ? "2026-06-15" : l.createdAt,
+  engine: l.fuel === "electric" ? "Electric motor" : i % 2 === 0 ? "2.0 L" : "1.6 L",
+  bodyType: ["Sedan", "SUV", "Sedan", "SUV"][i % 4],
+  color: ["Black", "White", "Silver", "Blue"][i % 4],
+  vin: `SD${String(i + 1).padStart(15, "0")}`,
+  stockId: `SD-${String(i + 1).padStart(5, "0")}`,
+  views: 180 + i * 73,
 }));
 
 export const mockBrands = [

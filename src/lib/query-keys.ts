@@ -6,6 +6,7 @@ export const queryKeys = {
     recent: (limit = 6) => ["listings", "recent", limit] as const,
     c2c: ["listings", "c2c"] as const,
     byAgency: (agencyId: string) => ["listings", "agency", agencyId] as const,
+    related: (listingId: string, limit = 4) => ["listings", "related", listingId, limit] as const,
     discovery: (params: import("@/lib/types").VehicleDiscoveryParams) =>
       ["listings", "discovery", params] as const,
   },

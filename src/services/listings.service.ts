@@ -5,6 +5,24 @@ const delay = <T>(v: T, ms = 120) => new Promise<T>((r) => setTimeout(() => r(v)
 
 const normalizeMake = (value: string) => value.toLowerCase().replace("-benz", "");
 
+function relatedTo(listingId: string, limit: number): VehicleListing[] {
+  const source = mockListings.find((listing) => listing.id === listingId);
+  if (!source) return [];
+
+  return mockListings
+    .filter((listing) => listing.id !== listingId)
+    .map((listing) => ({
+      listing,
+      score:
+        (normalizeMake(listing.make) === normalizeMake(source.make) ? 4 : 0) +
+        (listing.bodyType && listing.bodyType === source.bodyType ? 2 : 0) +
+        Math.max(0, 1 - Math.abs(listing.price - source.price) / Math.max(source.price, 1)),
+    }))
+    .sort((a, b) => b.score - a.score || b.listing.createdAt.localeCompare(a.listing.createdAt))
+    .slice(0, limit)
+    .map(({ listing }) => listing);
+}
+
 function discover(params: VehicleDiscoveryParams): VehicleDiscoveryResult {
   const q = params.q?.toLowerCase();
   let items = mockListings.filter((listing) => {
@@ -86,6 +104,8 @@ export const listingsService = {
     delay(mockListings.filter((l) => l.sellerType === "individual")),
   byAgency: (agencyId: string): Promise<VehicleListing[]> =>
     delay(mockListings.filter((l) => l.sellerType === "agency" && l.sellerId === agencyId)),
+  related: (listingId: string, limit = 4): Promise<VehicleListing[]> =>
+    delay(relatedTo(listingId, limit)),
   discover: (params: VehicleDiscoveryParams): Promise<VehicleDiscoveryResult> =>
     delay(discover(params)),
 };

@@ -79,6 +79,13 @@ export interface VehicleListing {
   featured: boolean;
   images: VehicleMedia[];
   createdAt: string;
+  updatedAt?: string;
+  engine?: string;
+  bodyType?: string;
+  color?: string;
+  vin?: string;
+  stockId?: string;
+  views?: number;
 }
 
 export interface Favorite {

@@ -195,3 +195,126 @@ test("search clear, history synchronization, and IME composition are safe", asyn
   assert.match(component, /queryKeys\.listings\.discovery\(params\)/);
   assert.doesNotMatch(component, /queryKeys\.listings\.discovery\(search\)/);
 });
+
+test("vehicle gallery supports navigation, swipe, fullscreen, loading, and fallback", async () => {
+  const gallery = await read("src/app/(site)/vehicles/[id]/vehicle-gallery.tsx");
+  assert.match(gallery, /const previous = useCallback/);
+  assert.match(gallery, /const next = useCallback/);
+  assert.match(gallery, /event\.key === "ArrowLeft"/);
+  assert.match(gallery, /onTouchStart/);
+  assert.match(gallery, /onTouchEnd/);
+  assert.match(gallery, /<Dialog open={fullscreen}/);
+  assert.match(gallery, /<Skeleton className="absolute inset-0"/);
+  assert.match(gallery, /onError=/);
+  assert.match(gallery, /ImageOff/);
+  for (const label of [
+    "vehicle.gallery.previous",
+    "vehicle.gallery.next",
+    "vehicle.gallery.fullscreen",
+  ])
+    assert.match(gallery, new RegExp(label.replaceAll(".", "\\.")));
+});
+
+test("vehicle detail presents grouped localized facts and seller-specific cards", async () => {
+  const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
+  const locale = await read("src/lib/locale.ts");
+  assert.match(detail, /vehicle\.overview/);
+  assert.match(detail, /vehicle\.mechanical/);
+  assert.match(detail, /vehicle\.listingDetails/);
+  assert.match(detail, /vehicle\.sellerType === "agency"/);
+  assert.match(detail, /href={`\/dealers\/\$\{seller\.id\}`}/);
+  assert.match(detail, /vehicle\.individualSeller/);
+  assert.match(detail, /seller\.vehicleCount/);
+  assert.match(detail, /formatCurrency/);
+  assert.match(detail, /formatMileage/);
+  assert.match(detail, /formatDate/);
+  assert.match(locale, /"ar-EG"/);
+  assert.match(locale, /"en-US"/);
+});
+
+test("related vehicles are service-ranked and exclude the active listing", async () => {
+  const service = await read("src/services/listings.service.ts");
+  const page = await read("src/app/(site)/vehicles/[id]/page.tsx");
+  const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
+  assert.match(service, /listing\.id !== listingId/);
+  assert.match(service, /normalizeMake\(listing\.make\) === normalizeMake\(source\.make\)/);
+  assert.match(service, /listing\.bodyType === source\.bodyType/);
+  assert.match(service, /Math\.abs\(listing\.price - source\.price\)/);
+  assert.match(page, /listingsService\.related\(id, 4\)/);
+  assert.match(detail, /related\.map\(\(vehicle\) =>/);
+  assert.match(detail, /vehicle\.noRelated/);
+});
+
+test("vehicle detail metadata and invalid route handling are production-ready", async () => {
+  const page = await read("src/app/(site)/vehicles/[id]/page.tsx");
+  const notFound = await read("src/app/(site)/vehicles/[id]/not-found.tsx");
+  assert.match(page, /if \(!vehicle\) notFound\(\)/);
+  assert.match(page, /alternates: \{ canonical:/);
+  assert.match(page, /openGraph:/);
+  assert.match(page, /twitter:/);
+  assert.match(page, /images: image/);
+  assert.match(page, /robots: \{ index: false, follow: false \}/);
+  assert.match(notFound, /notFound\.vehicle/);
+  assert.match(notFound, /notFound\.backVehicles/);
+});
+
+test("favorites hydrate from browser storage and persist every mutation", async () => {
+  const service = await read("src/services/favorites.service.ts");
+  const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
+  assert.match(service, /const storageKey = "sd-favorites"/);
+  assert.match(service, /window\.localStorage\.getItem\(storageKey\)/);
+  assert.match(service, /store\.set\(item\.listingId/);
+  assert.match(service, /window\.localStorage\.setItem\(storageKey/);
+  assert.match(service, /hydrate\(\);\s*return delay\(Array\.from\(store\.values\(\)\)\)/);
+  assert.match(service, /store\.set\(listingId, fav\);\s*persist\(\)/);
+  assert.match(service, /store\.delete\(listingId\);\s*persist\(\)/);
+  assert.match(detail, /queryFn: favoritesService\.list/);
+  assert.match(detail, /onMutate: async/);
+  assert.match(detail, /onError:/);
+});
+
+test("report listing opens an accessible reason dialog and confirms locally", async () => {
+  const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
+  assert.match(detail, /onClick=\{\(\) => setReportOpen\(true\)\}/);
+  assert.match(detail, /<Dialog open=\{open\} onOpenChange=\{onOpenChange\}>/);
+  assert.match(detail, /<DialogTitle>/);
+  assert.match(detail, /<DialogDescription>/);
+  assert.match(detail, /<RadioGroup/);
+  assert.match(detail, /aria-label=\{t\("vehicle\.report\.reasonLabel"\)\}/);
+  assert.match(detail, /disabled=\{!reason\}/);
+  assert.match(detail, /toast\.success\(t\("vehicle\.report\.successTitle"\)/);
+  for (const reason of ["incorrect", "sold", "fraud", "duplicate", "other"])
+    assert.match(detail, new RegExp(`"${reason}"`));
+});
+
+test("vehicle favorite control stays neutral until persisted favorites are hydrated", async () => {
+  const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
+  const gallery = await read("src/app/(site)/vehicles/[id]/vehicle-gallery.tsx");
+  assert.match(detail, /data: favorites, isPending: favoritesHydrating/);
+  assert.match(detail, /favoritesHydrating \? \(/);
+  assert.match(detail, /<Skeleton\s+role="status"\s+aria-label=\{t\("a11y\.loading"\)\}/);
+  assert.match(
+    detail,
+    /favorites\?\.some\(\(favorite\) => favorite\.listingId === v\.id\) \?\? false/,
+  );
+  assert.doesNotMatch(detail, /data: favorites = \[\]/);
+  assert.match(detail, /aria-pressed=\{saved\}/);
+  assert.match(detail, /favoritesService\.remove\(v\.id\)/);
+  assert.doesNotMatch(gallery, /favorites|favoriteMutation|queryKeys\.favorites/);
+});
+
+test("main gallery image is prioritized while thumbnails remain lazy", async () => {
+  const gallery = await read("src/app/(site)/vehicles/[id]/vehicle-gallery.tsx");
+  assert.match(gallery, /import Image from "next\/image"/);
+  assert.match(gallery, /priority=\{isPrimary && active === 0\}/);
+  assert.match(gallery, /fetchPriority=\{isPrimary && active === 0 \? "high" : "auto"\}/);
+  assert.match(gallery, /sizes="\(min-width: 1280px\) 800px, \(min-width: 1024px\) 65vw, 100vw"/);
+  assert.match(gallery, /className="relative aspect-\[16\/10\] w-full/);
+  assert.match(gallery, /loading="lazy"\s+sizes="112px"/);
+  assert.match(gallery, /loadedImageId !== current\.id/);
+  assert.match(gallery, /onLoad=\{\(\) => setLoadedImageId\(current\.id\)\}/);
+  assert.match(gallery, /!failed\.has\(current\.id\)/);
+  assert.match(gallery, /onError=\{\(\) => setFailed/);
+  assert.match(gallery, /galleryImage\(true\)/);
+  assert.match(gallery, /galleryImage\(false\)/);
+});

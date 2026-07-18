@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { QueryClient, HydrationBoundary, dehydrate } from "@tanstack/react-query";
 import { listingsService } from "@/services/listings.service";
+import { agenciesService } from "@/services/agencies.service";
 import { VehicleDetailClient } from "./vehicle-detail-client";
-import { queryKeys } from "@/lib/query-keys";
 import { getRequestLocale } from "@/lib/server-locale";
+import { formatCurrency, formatMileage, formatYear } from "@/lib/locale";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -13,14 +13,34 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const vehicle = await listingsService.byId(id);
   const locale = await getRequestLocale();
   const brand = locale === "ar" ? "سهلة درج" : "Sahla Daraj";
+  if (!vehicle) {
+    return {
+      title: `${locale === "ar" ? "سيارة غير موجودة" : "Vehicle not found"} — ${brand}`,
+      robots: { index: false, follow: false },
+    };
+  }
+  const description =
+    locale === "ar"
+      ? `${vehicle.title}، موديل ${formatYear(vehicle.year, locale)}، بسعر ${formatCurrency(vehicle.price, vehicle.currency, locale)} ومسافة ${formatMileage(vehicle.mileage, locale, "كم")}.`
+      : `${vehicle.title}, ${formatYear(vehicle.year, locale)}, priced at ${formatCurrency(vehicle.price, vehicle.currency, locale)} with ${formatMileage(vehicle.mileage, locale, "km")}.`;
+  const image = vehicle.images[0];
   return {
-    title: vehicle
-      ? `${vehicle.title} — ${brand}`
-      : `${locale === "ar" ? "سيارة" : "Vehicle"} — ${id} — ${brand}`,
-    description:
-      locale === "ar" ? "تفاصيل السيارة على سهلة درج." : "Vehicle details on Sahla Daraj.",
+    title: `${vehicle.title} — ${brand}`,
+    description,
     alternates: { canonical: `/vehicles/${id}` },
-    openGraph: { url: `/vehicles/${id}`, type: "website" },
+    openGraph: {
+      title: vehicle.title,
+      description,
+      url: `/vehicles/${id}`,
+      type: "website",
+      images: image ? [{ url: image.url, alt: image.alt }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: vehicle.title,
+      description,
+      images: image ? [image.url] : undefined,
+    },
   };
 }
 
@@ -29,15 +49,17 @@ export default async function VehicleDetailPage({ params }: Props) {
   const vehicle = await listingsService.byId(id);
   if (!vehicle) notFound();
 
-  const queryClient = new QueryClient();
-  await queryClient.prefetchQuery({
-    queryKey: queryKeys.listings.detail(id),
-    queryFn: () => listingsService.byId(id),
-  });
+  const [related, seller] = await Promise.all([
+    listingsService.related(id, 4),
+    vehicle.sellerType === "agency"
+      ? Promise.all([
+          agenciesService.byId(vehicle.sellerId),
+          listingsService.byAgency(vehicle.sellerId),
+        ]).then(([agency, inventory]) =>
+          agency ? { ...agency, vehicleCount: inventory.length } : undefined,
+        )
+      : undefined,
+  ]);
 
-  return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <VehicleDetailClient id={id} />
-    </HydrationBoundary>
-  );
+  return <VehicleDetailClient vehicle={vehicle} seller={seller} related={related} />;
 }
