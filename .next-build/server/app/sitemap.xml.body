@@ -33,6 +33,10 @@
 <changefreq>weekly</changefreq>
 </url>
 <url>
+<loc>http://localhost:3000/compare</loc>
+<changefreq>weekly</changefreq>
+</url>
+<url>
 <loc>http://localhost:3000/vehicles/v1</loc>
 <changefreq>weekly</changefreq>
 </url>

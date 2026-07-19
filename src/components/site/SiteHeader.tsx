@@ -2,16 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, Menu, Moon, Sun, Globe, User, X } from "lucide-react";
+import { Heart, Menu, Moon, Scale, Sun, Globe, User, X } from "lucide-react";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useCompare } from "@/hooks/use-compare";
+import { useFavorites } from "@/hooks/use-favorites";
+import { formatNumber } from "@/lib/locale";
 
 export function SiteHeader() {
   const { t, locale, setLocale, theme, setTheme } = useI18n();
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const { compareCount, isHydrating: compareHydrating } = useCompare();
+  const { favorites, isHydrating: favoritesHydrating } = useFavorites();
+  const favoritesCount = favorites.length;
+  const favoritesLabel = favoritesHydrating
+    ? t("nav.favorites")
+    : t("nav.favoritesWithCount").replace("{count}", formatNumber(favoritesCount, locale));
+  const compareLabel =
+    !compareHydrating && compareCount > 0
+      ? t("nav.compareWithCount").replace("{count}", formatNumber(compareCount, locale))
+      : t("nav.compare");
 
   const navLinks = [
     { href: "/c2c", label: t("nav.c2c") },
@@ -64,10 +77,31 @@ export function SiteHeader() {
           </button>
           <Link
             href="/favorites"
-            className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            aria-label={t("nav.favorites")}
+            aria-label={favoritesLabel}
+            aria-current={pathname === "/favorites" ? "page" : undefined}
+            className={cn(
+              "hidden lg:inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              pathname === "/favorites" && "bg-secondary text-foreground",
+            )}
           >
             <Heart className="h-4 w-4" />
+            <span className="hidden xl:inline">{t("nav.favorites")}</span>
+            {!favoritesHydrating && <span>({formatNumber(favoritesCount, locale)})</span>}
+          </Link>
+          <Link
+            href="/compare"
+            aria-label={compareLabel}
+            aria-current={pathname === "/compare" ? "page" : undefined}
+            className={cn(
+              "hidden lg:inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              pathname === "/compare" && "bg-secondary text-foreground",
+            )}
+          >
+            <Scale className="h-4 w-4" />
+            <span className="hidden xl:inline">{t("nav.compare")}</span>
+            {!compareHydrating && compareCount > 0 && (
+              <span>({formatNumber(compareCount, locale)})</span>
+            )}
           </Link>
           <Link href="/auth/login" className="hidden md:inline-flex">
             <Button variant="ghost" size="sm" className="h-9">
@@ -109,6 +143,36 @@ export function SiteHeader() {
                 {l.label}
               </Link>
             ))}
+            <Link
+              href="/favorites"
+              aria-label={favoritesLabel}
+              aria-current={pathname === "/favorites" ? "page" : undefined}
+              onClick={() => setOpen(false)}
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                pathname === "/favorites" && "bg-secondary text-foreground",
+              )}
+            >
+              <Heart className="h-4 w-4" />
+              <span>{t("nav.favorites")}</span>
+              {!favoritesHydrating && <span>({formatNumber(favoritesCount, locale)})</span>}
+            </Link>
+            <Link
+              href="/compare"
+              aria-label={compareLabel}
+              aria-current={pathname === "/compare" ? "page" : undefined}
+              onClick={() => setOpen(false)}
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                pathname === "/compare" && "bg-secondary text-foreground",
+              )}
+            >
+              <Scale className="h-4 w-4" />
+              <span>{t("nav.compare")}</span>
+              {!compareHydrating && compareCount > 0 && (
+                <span>({formatNumber(compareCount, locale)})</span>
+              )}
+            </Link>
             <div className="mt-2 grid grid-cols-2 gap-2">
               <Link href="/auth/login" onClick={() => setOpen(false)}>
                 <Button variant="outline" size="sm" className="w-full">

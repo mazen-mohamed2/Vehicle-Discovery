@@ -56,6 +56,12 @@ export const favoritesService = {
     persist();
     return delay(undefined);
   },
+  clear: (): Promise<void> => {
+    hydrate();
+    store.clear();
+    persist();
+    return delay(undefined);
+  },
   has: (listingId: string): boolean => {
     hydrate();
     return store.has(listingId);

@@ -14,6 +14,7 @@ test("all public route entry points exist", async () => {
     "src/app/(site)/dealers/page.tsx",
     "src/app/(site)/dealers/[id]/page.tsx",
     "src/app/(site)/favorites/page.tsx",
+    "src/app/(site)/compare/page.tsx",
     "src/app/(site)/import/page.tsx",
     "src/app/auth/login/page.tsx",
     "src/app/auth/register/page.tsx",
@@ -426,4 +427,205 @@ test("all vehicle surfaces share one persisted favorite cache and canonical list
   assert.match(discovery, /<VehicleCard key=\{vehicle\.id\} v=\{vehicle\}/);
   assert.match(home, /<VehicleCard key=\{v\.id\} v=\{v\}/);
   assert.match(detail, /<VehicleCard key=\{vehicle\.id\} v=\{vehicle\}/);
+});
+
+test("favorites page uses shared hydration, search, sorting, saved dates, and confirmed clear", async () => {
+  const page = await read("src/app/(site)/favorites/favorites-client.tsx");
+  const hook = await read("src/hooks/use-favorites.ts");
+  const service = await read("src/services/favorites.service.ts");
+  assert.match(page, /useFavorites\(\)/);
+  assert.match(page, /isHydrating/);
+  assert.match(page, /favorites\.search/);
+  for (const sort of ["saved", "price-asc", "price-desc", "year-desc", "year-asc"])
+    assert.match(page, new RegExp(`"${sort}"`));
+  assert.match(page, /createdAt/);
+  assert.match(page, /Date\.parse/);
+  assert.match(page, /vehicle\.notAvailable/);
+  assert.match(page, /<AlertDialog/);
+  assert.match(page, /<AlertDialogCancel>/);
+  assert.match(page, /clearFavorites\(\)/);
+  assert.match(hook, /clearMutation/);
+  assert.match(hook, /queryClient\.setQueryData<Favorite\[]>\(queryKeys\.favorites\.all, \[]\)/);
+  assert.match(service, /clear: \(\): Promise<void>/);
+});
+
+test("compare has one persisted optimistic architecture with a four-vehicle maximum", async () => {
+  const service = await read("src/services/compare.service.ts");
+  const hook = await read("src/hooks/use-compare.ts");
+  const keys = await read("src/lib/query-keys.ts");
+  assert.match(service, /MAX_COMPARE_VEHICLES = 4/);
+  assert.match(service, /storageKey = "sd-compare"/);
+  assert.match(service, /new Set/);
+  assert.match(service, /\.slice\(0, MAX_COMPARE_VEHICLES\)/);
+  assert.match(service, /localStorage\.getItem/);
+  assert.match(service, /localStorage\.setItem/);
+  assert.match(hook, /queryKey: queryKeys\.compare\.all/);
+  assert.match(hook, /queryFn: compareService\.list/);
+  assert.match(hook, /addToCompare/);
+  assert.match(hook, /removeFromCompare/);
+  assert.match(hook, /toggleCompare/);
+  assert.match(hook, /clearCompare/);
+  assert.match(hook, /onMutate/);
+  assert.match(hook, /onError/);
+  assert.match(hook, /context\?\.previous/);
+  assert.match(keys, /all: \["compare"\]/);
+});
+
+test("shared cards, details, tray, and providers expose synchronized compare controls", async () => {
+  const card = await read("src/components/marketplace/VehicleCard.tsx");
+  const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
+  const tray = await read("src/components/marketplace/CompareTray.tsx");
+  const providers = await read("src/app/providers.tsx");
+  for (const component of [card, detail]) {
+    assert.match(component, /useCompare\(\)/);
+    assert.match(component, /isHydrating/);
+    assert.match(component, /aria-pressed=/);
+    assert.match(component, /compare\.limit/);
+  }
+  assert.match(card, /toggleCompare\(v\.id\)/);
+  assert.match(detail, /toggleCompare\(v\.id\)/);
+  assert.match(tray, /compareCount/);
+  assert.match(tray, /href="\/compare"/);
+  assert.match(tray, /clearCompare/);
+  assert.match(providers, /<CompareTray \/>/);
+  assert.match(providers, /<Toaster/);
+});
+
+test("compare page handles edge states, differences, accessibility, and missing values", async () => {
+  const page = await read("src/app/(site)/compare/compare-client.tsx");
+  assert.match(page, /vehicles\.length === 0/);
+  assert.match(page, /vehicles\.length === 1/);
+  assert.match(page, /<table/);
+  assert.match(page, /scope="col"/);
+  assert.match(page, /scope="row"/);
+  assert.match(page, /overflow-x-auto/);
+  assert.match(page, /tabIndex=\{0\}/);
+  assert.match(page, /new Set\(values\)\.size > 1/);
+  assert.match(page, /compare\.differs/);
+  assert.match(page, /vehicle\.notAvailable/);
+  assert.match(page, /vehicle\.images\[0\]/);
+  assert.match(page, /<AlertDialog/);
+  assert.match(page, /const remove = \(id: string\)/);
+  assert.match(page, /setComparison\(\[]\)/);
+});
+
+test("shareable comparison URLs validate, normalize, restore, and avoid replace loops", async () => {
+  const url = await read("src/lib/compare-url.ts");
+  const page = await read("src/app/(site)/compare/compare-client.tsx");
+  assert.match(url, /value\s*\.split\(","\)/);
+  assert.match(url, /validIds\.has\(id\)/);
+  assert.match(url, /new Set/);
+  assert.match(url, /MAX_COMPARE_VEHICLES/);
+  assert.match(url, /encodeURIComponent/);
+  assert.match(page, /searchParams\.get\("vehicles"\)/);
+  assert.match(page, /lastUrlValue/);
+  assert.match(page, /if \(next !== current\) router\.replace/);
+  assert.match(page, /replaceCompare\(valid\)/);
+  assert.match(page, /navigator\.clipboard\.writeText/);
+  assert.match(page, /navigator\.share/);
+  assert.match(page, /compare\.clipboardFailure/);
+});
+
+test("favorites and compare remain independent and documented in both languages", async () => {
+  const favorites = await read("src/hooks/use-favorites.ts");
+  const compare = await read("src/hooks/use-compare.ts");
+  const i18n = await read("src/lib/i18n.tsx");
+  const docs = await read("DEVELOPMENT.md");
+  assert.doesNotMatch(favorites, /compareService|queryKeys\.compare/);
+  assert.doesNotMatch(compare, /favoritesService|queryKeys\.favorites/);
+  assert.match(i18n, /"compare\.title": "مقارنة السيارات"/);
+  assert.match(i18n, /"compare\.title": "Compare vehicles"/);
+  assert.match(i18n, /"favorites\.search":/);
+  assert.match(docs, /sd-favorites/);
+  assert.match(docs, /sd-compare/);
+  assert.match(docs, /maximum of four/);
+  assert.match(docs, /Favorites and Compare are intentionally independent/);
+  assert.match(docs, /NEXT_DIST_DIR=\.next-build npm run build/);
+});
+
+test("persisted favorite and compare controls use matching server hydration snapshots", async () => {
+  const hydration = await read("src/hooks/use-hydration-ready.ts");
+  const favorites = await read("src/hooks/use-favorites.ts");
+  const compare = await read("src/hooks/use-compare.ts");
+  const card = await read("src/components/marketplace/VehicleCard.tsx");
+  assert.match(hydration, /useSyncExternalStore/);
+  assert.match(hydration, /getClientSnapshot = \(\) => true/);
+  assert.match(hydration, /getServerSnapshot = \(\) => false/);
+  for (const hook of [favorites, compare]) {
+    assert.match(hook, /useHydrationReady\(\)/);
+    assert.match(hook, /isHydrating: !hydrationReady \|\| query\.isPending/);
+  }
+  assert.match(card, /compareHydrating \? \(/);
+  assert.match(card, /<Skeleton/);
+});
+
+test("compare clear and final removal cannot be restored by a stale URL", async () => {
+  const page = await read("src/app/(site)/compare/compare-client.tsx");
+  const service = await read("src/services/compare.service.ts");
+  assert.match(page, /pendingUrlValue = useRef<string \| null \| undefined>/);
+  assert.match(page, /pendingUrlValue\.current = expectedValue/);
+  assert.match(page, /if \(pendingUrlValue\.current !== undefined\)/);
+  assert.match(page, /else return/);
+  assert.match(page, /const setComparison = \(ids: string\[]\)/);
+  assert.match(page, /replaceCompare\(ids\);\s*updateUrl\(ids\)/);
+  assert.match(page, /const next = comparedIds\.filter\(\(item\) => item !== id\)/);
+  assert.match(page, /setComparison\(next\)/);
+  assert.match(page, /setComparison\(\[]\)/);
+  assert.match(service, /next\.length > 0/);
+  assert.match(service, /localStorage\.removeItem\(storageKey\)/);
+});
+
+test("compare renders dedicated zero, one, and multi-vehicle states", async () => {
+  const page = await read("src/app/(site)/compare/compare-client.tsx");
+  assert.match(page, /vehicles\.length === 0 \? \(/);
+  assert.match(page, /vehicles\.length === 1 \? \(/);
+  assert.match(page, /<OneVehicleState/);
+  assert.match(page, /function OneVehicleState/);
+  assert.match(page, /compare\.minimum/);
+  assert.match(page, /hero\.cta\.browse/);
+  assert.match(page, /onRemove=\{\(\) => remove\(vehicles\[0\]\.id\)\}/);
+  assert.match(page, /<table/);
+});
+
+test("shared header exposes hydration-safe desktop and mobile compare navigation", async () => {
+  const header = await read("src/components/site/SiteHeader.tsx");
+  const comparePage = await read("src/app/(site)/compare/compare-client.tsx");
+  const i18n = await read("src/lib/i18n.tsx");
+  assert.match(header, /useCompare\(\)/);
+  assert.match(header, /compareCount, isHydrating: compareHydrating/);
+  assert.match(header, /href="\/compare"/g);
+  assert.ok((header.match(/href="\/compare"/g) ?? []).length >= 2);
+  assert.match(header, /hidden lg:inline-flex/);
+  assert.match(header, /onClick=\{\(\) => setOpen\(false\)\}/);
+  assert.match(header, /!compareHydrating && compareCount > 0/);
+  assert.match(header, /nav\.compareWithCount/);
+  assert.match(header, /aria-label=\{compareLabel\}/);
+  assert.match(header, /focus-visible:ring-2/);
+  assert.match(i18n, /"nav\.compare": "مقارنة"/);
+  assert.match(i18n, /"nav\.compare": "Compare"/);
+  assert.match(comparePage, /vehicles\.length === 0/);
+  assert.match(comparePage, /vehicles\.length === 1/);
+  assert.match(comparePage, /<table/);
+});
+
+test("shared header exposes synchronized desktop and mobile favorites navigation", async () => {
+  const header = await read("src/components/site/SiteHeader.tsx");
+  const hook = await read("src/hooks/use-favorites.ts");
+  const i18n = await read("src/lib/i18n.tsx");
+  assert.match(header, /useFavorites\(\)/);
+  assert.match(header, /favorites, isHydrating: favoritesHydrating/);
+  assert.match(header, /const favoritesCount = favorites\.length/);
+  assert.ok((header.match(/href="\/favorites"/g) ?? []).length >= 2);
+  assert.match(header, /hidden lg:inline-flex/);
+  assert.match(header, /onClick=\{\(\) => setOpen\(false\)\}/);
+  assert.match(header, /!favoritesHydrating &&/);
+  assert.match(header, /nav\.favoritesWithCount/);
+  assert.match(header, /aria-label=\{favoritesLabel\}/);
+  assert.match(header, /aria-current=\{pathname === "\/favorites" \? "page" : undefined\}/);
+  assert.match(hook, /queryKey: queryKeys\.favorites\.all/);
+  assert.match(hook, /queryClient\.setQueryData<Favorite\[]>/);
+  assert.match(hook, /clearFavorites: clearMutation\.mutate/);
+  assert.doesNotMatch(header, /favoritesService|localStorage|queryKeys\.favorites/);
+  assert.match(i18n, /"nav\.favoritesWithCount": "المفضلة \(\{count\}\)"/);
+  assert.match(i18n, /"nav\.favoritesWithCount": "Favorites \(\{count\}\)"/);
 });

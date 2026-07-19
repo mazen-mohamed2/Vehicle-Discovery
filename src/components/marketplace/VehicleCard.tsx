@@ -2,18 +2,22 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, MapPin, Gauge, ShieldCheck, Star } from "lucide-react";
+import { Heart, MapPin, Gauge, Scale, ShieldCheck, Star } from "lucide-react";
+import { toast } from "sonner";
 import type { VehicleListing } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatMileage, formatYear } from "@/lib/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFavorites } from "@/hooks/use-favorites";
+import { useCompare } from "@/hooks/use-compare";
 
 export function VehicleCard({ v }: { v: VehicleListing }) {
   const { t, locale } = useI18n();
   const { isFavorite, toggleFavorite, isHydrating, togglingListingId } = useFavorites();
   const fav = isFavorite(v.id);
+  const { isCompared, toggleCompare, isHydrating: compareHydrating } = useCompare();
+  const compared = isCompared(v.id);
 
   const priceFmt = formatCurrency(v.price, v.currency, locale);
   const mileage = formatMileage(v.mileage, locale, t("card.km"));
@@ -43,28 +47,55 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
               </span>
             )}
           </div>
-          {isHydrating ? (
-            <Skeleton
-              role="status"
-              aria-label={t("a11y.loading")}
-              className="relative z-10 h-8 w-8 rounded-full bg-background/90"
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={() => toggleFavorite(v.id)}
-              disabled={togglingListingId === v.id}
-              aria-label={fav ? t("favorites.remove") : t("favorites.add")}
-              aria-pressed={fav}
-              className={cn(
-                "relative z-10",
-                "grid h-8 w-8 place-items-center rounded-full bg-background/90 backdrop-blur border border-border transition-colors disabled:cursor-wait disabled:opacity-60",
-                fav ? "text-destructive" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Heart className={cn("h-4 w-4", fav && "fill-current")} />
-            </button>
-          )}
+          <div className="relative z-10 grid gap-2">
+            {isHydrating ? (
+              <Skeleton
+                role="status"
+                aria-label={t("a11y.loading")}
+                className="h-8 w-8 rounded-full bg-background/90"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => toggleFavorite(v.id)}
+                disabled={togglingListingId === v.id}
+                aria-label={fav ? t("favorites.remove") : t("favorites.add")}
+                aria-pressed={fav}
+                className={cn(
+                  "grid h-8 w-8 place-items-center rounded-full bg-background/90 backdrop-blur border border-border transition-colors disabled:cursor-wait disabled:opacity-60",
+                  fav ? "text-destructive" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Heart className={cn("h-4 w-4", fav && "fill-current")} />
+              </button>
+            )}
+            {compareHydrating ? (
+              <Skeleton
+                role="status"
+                aria-label={t("compare.loading")}
+                className="h-8 w-8 rounded-full bg-background/90"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  const changed = toggleCompare(v.id);
+                  if (!changed) toast.error(t("compare.limit"));
+                  else toast.success(t(compared ? "compare.removed" : "compare.added"));
+                }}
+                aria-label={t(compared ? "compare.remove" : "compare.add")}
+                aria-pressed={compared}
+                className={cn(
+                  "grid h-8 w-8 place-items-center rounded-full border border-border bg-background/90 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  compared
+                    ? "text-primary ring-1 ring-primary"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Scale className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
         <div className="absolute bottom-3 start-3">
           <span

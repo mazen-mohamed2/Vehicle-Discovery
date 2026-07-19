@@ -4,6 +4,8 @@ import { useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider } from "@/lib/i18n";
 import type { Locale, Theme } from "@/lib/i18n";
+import { CompareTray } from "@/components/marketplace/CompareTray";
+import { Toaster } from "@/components/ui/sonner";
 
 export function Providers({
   children,
@@ -34,6 +36,8 @@ export function Providers({
     <QueryClientProvider client={queryClient}>
       <I18nProvider initialLocale={locale} initialTheme={theme}>
         {children}
+        <CompareTray />
+        <Toaster position={locale === "ar" ? "bottom-left" : "bottom-right"} />
       </I18nProvider>
     </QueryClientProvider>
   );

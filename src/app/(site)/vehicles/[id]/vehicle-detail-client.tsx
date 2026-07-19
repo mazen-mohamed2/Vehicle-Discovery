@@ -12,6 +12,7 @@ import {
   Heart,
   MapPin,
   Phone,
+  Scale,
   Share2,
   ShieldCheck,
   Star,
@@ -35,10 +36,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { VehicleGallery } from "./vehicle-gallery";
 import { useFavorites } from "@/hooks/use-favorites";
+import { useCompare } from "@/hooks/use-compare";
 
 export function VehicleDetailClient({
   vehicle: v,
@@ -54,6 +55,8 @@ export function VehicleDetailClient({
   const [reportReason, setReportReason] = useState("");
   const { isFavorite, toggleFavorite, isHydrating, togglingListingId } = useFavorites();
   const saved = isFavorite(v.id);
+  const { isCompared, toggleCompare, isHydrating: compareHydrating } = useCompare();
+  const compared = isCompared(v.id);
 
   const overview = [
     [t("form.year"), formatYear(v.year, locale)],
@@ -165,6 +168,24 @@ export function VehicleDetailClient({
               >
                 <Share2 className="me-2 h-4 w-4" /> {t("vehicle.share")}
               </Button>
+              {compareHydrating ? (
+                <Skeleton role="status" aria-label={t("compare.loading")} className="h-10 w-full" />
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  aria-label={t(compared ? "compare.remove" : "compare.add")}
+                  aria-pressed={compared}
+                  onClick={() => {
+                    const changed = toggleCompare(v.id);
+                    if (!changed) toast.error(t("compare.limit"));
+                    else toast.success(t(compared ? "compare.removed" : "compare.added"));
+                  }}
+                >
+                  <Scale className="me-2 h-4 w-4" />{" "}
+                  {t(compared ? "compare.removeShort" : "compare.addShort")}
+                </Button>
+              )}
             </div>
             <Button
               type="button"
@@ -221,7 +242,6 @@ export function VehicleDetailClient({
           });
         }}
       />
-      <Toaster position={locale === "ar" ? "bottom-left" : "bottom-right"} />
     </main>
   );
 }

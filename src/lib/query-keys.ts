@@ -19,4 +19,7 @@ export const queryKeys = {
   favorites: {
     all: ["favorites"] as const,
   },
+  compare: {
+    all: ["compare"] as const,
+  },
 } as const;

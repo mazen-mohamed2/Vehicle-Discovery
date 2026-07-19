@@ -25,7 +25,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState, VehicleGridSkeleton } from "@/components/marketplace/CollectionStates";
-import { Toaster } from "@/components/ui/sonner";
 import { useI18n } from "@/lib/i18n";
 import { agenciesService } from "@/services/agencies.service";
 import { listingsService } from "@/services/listings.service";
@@ -392,7 +391,6 @@ export function DealerDetailClient({ id }: { id: string }) {
           )}
         </section>
       </div>
-      <Toaster position={locale === "ar" ? "bottom-left" : "bottom-right"} />
     </main>
   );
 }

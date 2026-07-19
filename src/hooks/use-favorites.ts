@@ -5,11 +5,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Favorite } from "@/lib/types";
 import { queryKeys } from "@/lib/query-keys";
 import { favoritesService } from "@/services/favorites.service";
+import { useHydrationReady } from "@/hooks/use-hydration-ready";
 
 type ToggleFavorite = { listingId: string; wasFavorite: boolean };
 
 export function useFavorites() {
   const queryClient = useQueryClient();
+  const hydrationReady = useHydrationReady();
   const query = useQuery({
     queryKey: queryKeys.favorites.all,
     queryFn: favoritesService.list,
@@ -48,6 +50,18 @@ export function useFavorites() {
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.favorites.all }),
   });
+  const clearMutation = useMutation({
+    mutationFn: favoritesService.clear,
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.favorites.all });
+      const previous = queryClient.getQueryData<Favorite[]>(queryKeys.favorites.all) ?? [];
+      queryClient.setQueryData<Favorite[]>(queryKeys.favorites.all, []);
+      return { previous };
+    },
+    onError: (_error, _variables, context) =>
+      queryClient.setQueryData(queryKeys.favorites.all, context?.previous),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.favorites.all }),
+  });
   const toggleFavorite = (listingId: string) =>
     mutation.mutate({ listingId, wasFavorite: isFavorite(listingId) });
 
@@ -55,9 +69,11 @@ export function useFavorites() {
     favorites,
     isFavorite,
     toggleFavorite,
-    isHydrating: query.isPending,
+    isHydrating: !hydrationReady || query.isPending,
     isError: query.isError,
     refetch: query.refetch,
     togglingListingId: mutation.isPending ? mutation.variables?.listingId : undefined,
+    clearFavorites: clearMutation.mutate,
+    isClearing: clearMutation.isPending,
   };
 }
