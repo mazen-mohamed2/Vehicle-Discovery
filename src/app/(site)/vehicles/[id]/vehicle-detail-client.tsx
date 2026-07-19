@@ -18,15 +18,12 @@ import {
   Store,
   UserRound,
 } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Agency, Favorite, VehicleListing } from "@/lib/types";
+import type { Agency, VehicleListing } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useI18n } from "@/lib/i18n";
-import { favoritesService } from "@/services/favorites.service";
 import { formatCurrency, formatDate, formatMileage, formatNumber, formatYear } from "@/lib/locale";
-import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 import { VehicleCard } from "@/components/marketplace/VehicleCard";
 import {
@@ -41,6 +38,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { VehicleGallery } from "./vehicle-gallery";
+import { useFavorites } from "@/hooks/use-favorites";
 
 export function VehicleDetailClient({
   vehicle: v,
@@ -54,40 +52,8 @@ export function VehicleDetailClient({
   const { t, locale } = useI18n();
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
-  const queryClient = useQueryClient();
-  const { data: favorites, isPending: favoritesHydrating } = useQuery({
-    queryKey: queryKeys.favorites.all,
-    queryFn: favoritesService.list,
-  });
-  const saved = favorites?.some((favorite) => favorite.listingId === v.id) ?? false;
-  const favoriteMutation = useMutation({
-    mutationFn: async () => {
-      if (saved) await favoritesService.remove(v.id);
-      else await favoritesService.add(v.id);
-    },
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.favorites.all });
-      const previous = queryClient.getQueryData<Favorite[]>(queryKeys.favorites.all) ?? [];
-      queryClient.setQueryData<Favorite[]>(
-        queryKeys.favorites.all,
-        saved
-          ? previous.filter((favorite) => favorite.listingId !== v.id)
-          : [
-              ...previous,
-              {
-                id: `optimistic_${v.id}`,
-                userId: "me",
-                listingId: v.id,
-                createdAt: new Date().toISOString(),
-              },
-            ],
-      );
-      return { previous };
-    },
-    onError: (_error, _variables, context) =>
-      queryClient.setQueryData(queryKeys.favorites.all, context?.previous),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.favorites.all }),
-  });
+  const { isFavorite, toggleFavorite, isHydrating, togglingListingId } = useFavorites();
+  const saved = isFavorite(v.id);
 
   const overview = [
     [t("form.year"), formatYear(v.year, locale)],
@@ -174,7 +140,7 @@ export function VehicleDetailClient({
               >
                 <Phone className="me-2 h-4 w-4" /> {t("vehicle.contactSeller")}
               </Button>
-              {favoritesHydrating ? (
+              {isHydrating ? (
                 <Skeleton role="status" aria-label={t("a11y.loading")} className="h-10 w-full" />
               ) : (
                 <Button
@@ -182,8 +148,8 @@ export function VehicleDetailClient({
                   variant="outline"
                   aria-label={saved ? t("favorites.remove") : t("favorites.add")}
                   aria-pressed={saved}
-                  disabled={favoriteMutation.isPending}
-                  onClick={() => favoriteMutation.mutate()}
+                  disabled={togglingListingId === v.id}
+                  onClick={() => toggleFavorite(v.id)}
                 >
                   <Heart className={cn("me-2 h-4 w-4", saved && "fill-current text-destructive")} />
                   {t("vehicle.save")}

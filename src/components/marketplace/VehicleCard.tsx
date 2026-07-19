@@ -3,52 +3,17 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Heart, MapPin, Gauge, ShieldCheck, Star } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Favorite } from "@/lib/types";
 import type { VehicleListing } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
-import { favoritesService } from "@/services/favorites.service";
 import { cn } from "@/lib/utils";
-import { queryKeys } from "@/lib/query-keys";
 import { formatCurrency, formatMileage, formatYear } from "@/lib/locale";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useFavorites } from "@/hooks/use-favorites";
 
 export function VehicleCard({ v }: { v: VehicleListing }) {
   const { t, locale } = useI18n();
-  const queryClient = useQueryClient();
-  const { data: favorites = [] } = useQuery({
-    queryKey: queryKeys.favorites.all,
-    queryFn: favoritesService.list,
-  });
-  const fav = favorites.some((favorite) => favorite.listingId === v.id);
-  const mutation = useMutation({
-    mutationFn: async () => {
-      if (fav) await favoritesService.remove(v.id);
-      else await favoritesService.add(v.id);
-    },
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.favorites.all });
-      const previous = queryClient.getQueryData<Favorite[]>(queryKeys.favorites.all) ?? [];
-      queryClient.setQueryData<Favorite[]>(
-        queryKeys.favorites.all,
-        fav
-          ? previous.filter((favorite) => favorite.listingId !== v.id)
-          : [
-              ...previous,
-              {
-                id: `optimistic_${v.id}`,
-                userId: "me",
-                listingId: v.id,
-                createdAt: new Date().toISOString(),
-              },
-            ],
-      );
-      return { previous };
-    },
-    onError: (_error, _variables, context) => {
-      queryClient.setQueryData(queryKeys.favorites.all, context?.previous);
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.favorites.all }),
-  });
+  const { isFavorite, toggleFavorite, isHydrating, togglingListingId } = useFavorites();
+  const fav = isFavorite(v.id);
 
   const priceFmt = formatCurrency(v.price, v.currency, locale);
   const mileage = formatMileage(v.mileage, locale, t("card.km"));
@@ -78,20 +43,28 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending}
-            aria-label={fav ? t("favorites.remove") : t("favorites.add")}
-            aria-pressed={fav}
-            className={cn(
-              "relative z-10",
-              "grid h-8 w-8 place-items-center rounded-full bg-background/90 backdrop-blur border border-border transition-colors disabled:cursor-wait disabled:opacity-60",
-              fav ? "text-destructive" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Heart className={cn("h-4 w-4", fav && "fill-current")} />
-          </button>
+          {isHydrating ? (
+            <Skeleton
+              role="status"
+              aria-label={t("a11y.loading")}
+              className="relative z-10 h-8 w-8 rounded-full bg-background/90"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => toggleFavorite(v.id)}
+              disabled={togglingListingId === v.id}
+              aria-label={fav ? t("favorites.remove") : t("favorites.add")}
+              aria-pressed={fav}
+              className={cn(
+                "relative z-10",
+                "grid h-8 w-8 place-items-center rounded-full bg-background/90 backdrop-blur border border-border transition-colors disabled:cursor-wait disabled:opacity-60",
+                fav ? "text-destructive" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Heart className={cn("h-4 w-4", fav && "fill-current")} />
+            </button>
+          )}
         </div>
         <div className="absolute bottom-3 start-3">
           <span

@@ -14,6 +14,7 @@ export const queryKeys = {
     all: ["agencies", "all"] as const,
     verified: ["agencies", "verified"] as const,
     detail: (id: string) => ["agencies", "detail", id] as const,
+    similar: (id: string, limit = 3) => ["agencies", "similar", id, limit] as const,
   },
   favorites: {
     all: ["favorites"] as const,

@@ -14,12 +14,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const agency = await agenciesService.byId(id);
   const locale = await getRequestLocale();
   const brand = locale === "ar" ? "سهلة درج" : "Sahla Daraj";
+  if (!agency) {
+    return {
+      title: `${locale === "ar" ? "وكيل غير موجود" : "Dealer not found"} — ${brand}`,
+      robots: { index: false, follow: false },
+    };
+  }
+  const description =
+    locale === "ar"
+      ? `تعرف على ${agency.name} في ${agency.location} وتصفح السيارات الجديدة والمستعملة المتاحة.`
+      : `View ${agency.name} in ${agency.location} and browse its available new and used vehicles.`;
   return {
-    title: agency
-      ? `${agency.name} — ${brand}`
-      : `${locale === "ar" ? "وكيل" : "Dealer"} ${id} — ${brand}`,
+    title: `${agency.name} — ${brand}`,
+    description,
     alternates: { canonical: `/dealers/${id}` },
-    openGraph: { url: `/dealers/${id}` },
+    openGraph: {
+      title: agency.name,
+      description,
+      url: `/dealers/${id}`,
+      type: "website",
+      images: agency.logoUrl ? [{ url: agency.logoUrl, alt: agency.name }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: agency.name,
+      description,
+      images: agency.logoUrl ? [agency.logoUrl] : undefined,
+    },
   };
 }
 
@@ -32,6 +53,10 @@ export default async function DealerDetailPage({ params }: Props) {
   await queryClient.prefetchQuery({
     queryKey: queryKeys.agencies.detail(id),
     queryFn: () => agenciesService.byId(id),
+  });
+  await queryClient.prefetchQuery({
+    queryKey: queryKeys.agencies.similar(id, 3),
+    queryFn: () => agenciesService.similar(id, 3),
   });
   await queryClient.prefetchQuery({
     queryKey: queryKeys.listings.byAgency(id),

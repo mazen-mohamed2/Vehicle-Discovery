@@ -50,6 +50,17 @@ export const mockAgencies: Agency[] = [
   },
 ];
 
+mockAgencies.forEach((agency, index) => {
+  agency.reviewCount = 42 + index * 17;
+  agency.description = `${agency.name} offers a carefully selected range of new and used vehicles with transparent marketplace support.`;
+  agency.address = `${agency.location}, Egypt`;
+  agency.workingHours = "Saturday–Thursday, 10:00–20:00";
+  agency.phone = "+20 100 000 0000";
+  agency.email = `sales@dealer-${index + 1}.example`;
+  agency.website = `www.dealer-${index + 1}.example`;
+  agency.responseTime = "Within one hour";
+});
+
 const baseListings: Omit<VehicleListing, "id" | "images">[] = [
   {
     title: "BMW 530i M Sport",

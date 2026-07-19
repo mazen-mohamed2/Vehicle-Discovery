@@ -50,21 +50,18 @@ test("dealer card counts use the same scoped inventory as dealer details", async
   assert.match(directory, /listingsService\.byAgency\(agency\.id\)/);
   assert.match(directory, /vehicleCount={inventoryQueries\[index\]\.data\?\.length \?\? 0}/);
   assert.match(detail, /listingsService\.byAgency\(id\)/);
-  assert.match(detail, /listings\.length/);
+  assert.match(detail, /inventory\.length/);
   assert.match(card, /vehicleCount: number/);
   assert.doesNotMatch(card, /a\.vehicleCount/);
 });
 
 test("favorites use shared optimistic query mutation", async () => {
   const card = await read("src/components/marketplace/VehicleCard.tsx");
-  for (const pattern of [
-    /useMutation/,
-    /queryKeys\.favorites\.all/,
-    /onMutate/,
-    /onError/,
-    /aria-pressed/,
-  ])
-    assert.match(card, pattern);
+  const hook = await read("src/hooks/use-favorites.ts");
+  for (const pattern of [/useMutation/, /queryKeys\.favorites\.all/, /onMutate/, /onError/])
+    assert.match(hook, pattern);
+  assert.match(card, /useFavorites/);
+  assert.match(card, /aria-pressed/);
 });
 
 test("vehicle discovery is URL-driven and service-owned", async () => {
@@ -268,9 +265,7 @@ test("favorites hydrate from browser storage and persist every mutation", async 
   assert.match(service, /hydrate\(\);\s*return delay\(Array\.from\(store\.values\(\)\)\)/);
   assert.match(service, /store\.set\(listingId, fav\);\s*persist\(\)/);
   assert.match(service, /store\.delete\(listingId\);\s*persist\(\)/);
-  assert.match(detail, /queryFn: favoritesService\.list/);
-  assert.match(detail, /onMutate: async/);
-  assert.match(detail, /onError:/);
+  assert.match(detail, /useFavorites\(\)/);
 });
 
 test("report listing opens an accessible reason dialog and confirms locally", async () => {
@@ -290,16 +285,12 @@ test("report listing opens an accessible reason dialog and confirms locally", as
 test("vehicle favorite control stays neutral until persisted favorites are hydrated", async () => {
   const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
   const gallery = await read("src/app/(site)/vehicles/[id]/vehicle-gallery.tsx");
-  assert.match(detail, /data: favorites, isPending: favoritesHydrating/);
-  assert.match(detail, /favoritesHydrating \? \(/);
+  assert.match(detail, /isFavorite, toggleFavorite, isHydrating, togglingListingId/);
+  assert.match(detail, /isHydrating \? \(/);
   assert.match(detail, /<Skeleton\s+role="status"\s+aria-label=\{t\("a11y\.loading"\)\}/);
-  assert.match(
-    detail,
-    /favorites\?\.some\(\(favorite\) => favorite\.listingId === v\.id\) \?\? false/,
-  );
-  assert.doesNotMatch(detail, /data: favorites = \[\]/);
+  assert.match(detail, /const saved = isFavorite\(v\.id\)/);
   assert.match(detail, /aria-pressed=\{saved\}/);
-  assert.match(detail, /favoritesService\.remove\(v\.id\)/);
+  assert.match(detail, /toggleFavorite\(v\.id\)/);
   assert.doesNotMatch(gallery, /favorites|favoriteMutation|queryKeys\.favorites/);
 });
 
@@ -317,4 +308,122 @@ test("main gallery image is prioritized while thumbnails remain lazy", async () 
   assert.match(gallery, /onError=\{\(\) => setFailed/);
   assert.match(gallery, /galleryImage\(true\)/);
   assert.match(gallery, /galleryImage\(false\)/);
+});
+
+test("dealer profile metadata is dynamic, canonical, and social-ready", async () => {
+  const page = await read("src/app/(site)/dealers/[id]/page.tsx");
+  assert.match(page, /title: `\$\{agency\.name\}/);
+  assert.match(page, /description,/);
+  assert.match(page, /alternates: \{ canonical: `\/dealers\/\$\{id\}` \}/);
+  assert.match(page, /openGraph:/);
+  assert.match(page, /twitter:/);
+  assert.match(page, /robots: \{ index: false, follow: false \}/);
+});
+
+test("dealer hero and statistics use scoped inventory and accessible landmarks", async () => {
+  const detail = await read("src/app/(site)/dealers/[id]/dealer-detail-client.tsx");
+  assert.match(detail, /aria-labelledby="dealer-title"/);
+  assert.match(detail, /agency\.logoUrl/);
+  assert.match(detail, /agency\.reviewCount/);
+  assert.match(detail, /dealer\.responseTime/);
+  assert.match(detail, /dealer\.activeListings/);
+  assert.match(detail, /inventory\.filter\(\(vehicle\) => vehicle\.condition === "new"\)/);
+  assert.match(detail, /const usedVehicles = inventory\.length - newVehicles/);
+  assert.match(detail, /reduce\(\(total, vehicle\) => total \+ vehicle\.price/);
+  assert.match(detail, /dealer-stats-title/);
+  assert.match(detail, /formatCurrency\(averagePrice/);
+});
+
+test("dealer inventory search, filters, and sorting remain local", async () => {
+  const detail = await read("src/app/(site)/dealers/[id]/dealer-detail-client.tsx");
+  const inventory = await read("src/lib/dealer-inventory.ts");
+  const service = await read("src/services/listings.service.ts");
+  assert.match(detail, /useDeferredValue\(filters\.search\)/);
+  assert.match(detail, /filterDealerInventory\(inventory/);
+  for (const filter of ["search", "make", "bodyType", "fuel", "transmission", "sort"])
+    assert.match(detail, new RegExp(`filters\\.${filter}`));
+  assert.match(detail, /queryKeys\.listings\.byAgency\(id\)/);
+  assert.match(detail, /<VehicleCard key=\{vehicle\.id\}/);
+  assert.match(detail, /<VehicleGridSkeleton/);
+  assert.match(detail, /state\.dealer\.empty\.title/);
+  assert.match(service, /l\.sellerType === "agency" && l\.sellerId === agencyId/);
+  assert.match(inventory, /listing\.bodyType === filters\.bodyType/);
+  assert.match(inventory, /listing\.fuel === filters\.fuel/);
+  assert.match(inventory, /listing\.transmission === filters\.transmission/);
+  assert.match(inventory, /comparators\[filters\.sort\]/);
+  assert.doesNotMatch(detail, /router\.(push|replace)/);
+});
+
+test("dealer contact, about, map, and sharing remain backend-free placeholders", async () => {
+  const detail = await read("src/app/(site)/dealers/[id]/dealer-detail-client.tsx");
+  for (const key of [
+    "dealer.contact",
+    "dealer.call",
+    "dealer.whatsapp",
+    "dealer.share",
+    "dealer.about",
+    "dealer.address",
+    "dealer.workingHours",
+    "dealer.phone",
+    "dealer.email",
+    "dealer.website",
+  ])
+    assert.match(detail, new RegExp(key.replaceAll(".", "\\.")));
+  assert.match(detail, /navigator\.share/);
+  assert.match(detail, /navigator\.clipboard/);
+  assert.match(detail, /toast\.(info|success)/);
+  assert.match(detail, /role="img"/);
+  assert.match(detail, /aria-label=\{t\("dealer\.mapPlaceholder"\)\}/);
+  assert.doesNotMatch(detail, /google\.maps|maps\.google|<iframe/i);
+  assert.doesNotMatch(detail, /href="tel:|wa\.me/);
+});
+
+test("similar dealers are service-ranked without duplicates and use real inventory counts", async () => {
+  const service = await read("src/services/agencies.service.ts");
+  const page = await read("src/app/(site)/dealers/[id]/page.tsx");
+  const detail = await read("src/app/(site)/dealers/[id]/dealer-detail-client.tsx");
+  assert.match(service, /agency\.id !== agencyId/);
+  assert.match(service, /agency\.location === source\.location/);
+  assert.match(service, /sourceBrands\.has\(brand\)/);
+  assert.match(service, /Math\.abs\(inventory\.length - sourceInventory\.length\)/);
+  assert.match(service, /vehicleCount: inventory\.length/);
+  assert.match(page, /queryKeys\.agencies\.similar\(id, 3\)/);
+  assert.match(detail, /recommendations\.map/);
+  assert.match(detail, /vehicleCount=\{vehicleCount\}/);
+});
+
+test("all vehicle surfaces share one persisted favorite cache and canonical listing id", async () => {
+  const hook = await read("src/hooks/use-favorites.ts");
+  const card = await read("src/components/marketplace/VehicleCard.tsx");
+  const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
+  const favoritesPage = await read("src/app/(site)/favorites/favorites-client.tsx");
+  const dealer = await read("src/app/(site)/dealers/[id]/dealer-detail-client.tsx");
+  const discovery = await read("src/components/marketplace/VehicleDiscovery.tsx");
+  const home = await read("src/app/(site)/home-client.tsx");
+
+  assert.match(hook, /queryKey: queryKeys\.favorites\.all/);
+  assert.match(hook, /queryFn: favoritesService\.list/);
+  assert.match(hook, /favorite\.listingId === listingId/);
+  assert.match(hook, /favoritesService\.add\(listingId\)/);
+  assert.match(hook, /favoritesService\.remove\(listingId\)/);
+  assert.match(hook, /onError:.*context/s);
+  assert.match(hook, /setQueryData\(queryKeys\.favorites\.all, context\?\.previous\)/);
+  assert.match(hook, /invalidateQueries\(\{ queryKey: queryKeys\.favorites\.all \}\)/);
+
+  assert.match(card, /useFavorites\(\)/);
+  assert.match(detail, /useFavorites\(\)/);
+  assert.match(favoritesPage, /useFavorites\(\)/);
+  assert.doesNotMatch(card, /favoritesService|queryKeys\.favorites|useMutation/);
+  assert.doesNotMatch(detail, /favoritesService|queryKeys\.favorites|useMutation/);
+
+  assert.match(card, /isHydrating \? \(/);
+  assert.match(card, /<Skeleton/);
+  assert.match(card, /const fav = isFavorite\(v\.id\)/);
+  assert.match(card, /toggleFavorite\(v\.id\)/);
+  assert.doesNotMatch(card, /data: favorites = \[\]/);
+
+  assert.match(dealer, /<VehicleCard key=\{vehicle\.id\} v=\{vehicle\}/);
+  assert.match(discovery, /<VehicleCard key=\{vehicle\.id\} v=\{vehicle\}/);
+  assert.match(home, /<VehicleCard key=\{v\.id\} v=\{v\}/);
+  assert.match(detail, /<VehicleCard key=\{vehicle\.id\} v=\{vehicle\}/);
 });

@@ -51,6 +51,20 @@ export interface Agency {
   verified: boolean;
   location: string;
   since: number;
+  reviewCount?: number;
+  description?: string;
+  address?: string;
+  workingHours?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  responseTime?: string;
+}
+
+export interface AgencyRecommendation {
+  agency: Agency;
+  vehicleCount: number;
+  sharedBrands: string[];
 }
 
 export interface VehicleMedia {

@@ -7,22 +7,23 @@ import { PageHeader } from "@/components/site/PageHeader";
 import { VehicleCard } from "@/components/marketplace/VehicleCard";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
-import { favoritesService } from "@/services/favorites.service";
 import { listingsService } from "@/services/listings.service";
 import { queryKeys } from "@/lib/query-keys";
 import { QueryErrorState, VehicleGridSkeleton } from "@/components/marketplace/CollectionStates";
+import { useFavorites } from "@/hooks/use-favorites";
 
 export function FavoritesClient() {
   const { t } = useI18n();
-  const favoritesQuery = useQuery({
-    queryKey: queryKeys.favorites.all,
-    queryFn: () => favoritesService.list(),
-  });
+  const {
+    favorites: favs,
+    isHydrating: favoritesHydrating,
+    isError: favoritesError,
+    refetch: refetchFavorites,
+  } = useFavorites();
   const listingsQuery = useQuery({
     queryKey: queryKeys.listings.all,
     queryFn: () => listingsService.list(),
   });
-  const favs = favoritesQuery.data ?? [];
   const all = listingsQuery.data ?? [];
   const ids = new Set(favs.map((f) => f.listingId));
   const items = all.filter((v) => ids.has(v.id));
@@ -31,14 +32,14 @@ export function FavoritesClient() {
     <>
       <PageHeader eyebrow={t("eyebrow.saved")} title={t("favorites.title")} />
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        {favoritesQuery.isLoading || listingsQuery.isLoading ? (
+        {favoritesHydrating || listingsQuery.isLoading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <VehicleGridSkeleton />
           </div>
-        ) : favoritesQuery.isError || listingsQuery.isError ? (
+        ) : favoritesError || listingsQuery.isError ? (
           <QueryErrorState
             retry={() => {
-              void favoritesQuery.refetch();
+              void refetchFavorites();
               void listingsQuery.refetch();
             }}
           />

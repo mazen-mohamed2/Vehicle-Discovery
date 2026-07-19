@@ -1,17 +1,17 @@
 {
   "/sitemap.xml/route": "app/sitemap.xml/route.js",
   "/_not-found/page": "app/_not-found/page.js",
-  "/(site)/about/page": "app/(site)/about/page.js",
-  "/(site)/c2c/page": "app/(site)/c2c/page.js",
   "/(site)/contact/page": "app/(site)/contact/page.js",
-  "/(site)/favorites/page": "app/(site)/favorites/page.js",
-  "/(site)/dealers/[id]/page": "app/(site)/dealers/[id]/page.js",
   "/(site)/dealers/page": "app/(site)/dealers/page.js",
-  "/(site)/import/page": "app/(site)/import/page.js",
+  "/(site)/c2c/page": "app/(site)/c2c/page.js",
+  "/(site)/about/page": "app/(site)/about/page.js",
+  "/(site)/dealers/[id]/page": "app/(site)/dealers/[id]/page.js",
+  "/(site)/favorites/page": "app/(site)/favorites/page.js",
   "/(site)/how-it-works/page": "app/(site)/how-it-works/page.js",
-  "/(site)/page": "app/(site)/page.js",
+  "/(site)/import/page": "app/(site)/import/page.js",
   "/(site)/vehicles/[id]/page": "app/(site)/vehicles/[id]/page.js",
+  "/auth/login/page": "app/auth/login/page.js",
+  "/(site)/page": "app/(site)/page.js",
   "/(site)/vehicles/page": "app/(site)/vehicles/page.js",
-  "/auth/register/page": "app/auth/register/page.js",
-  "/auth/login/page": "app/auth/login/page.js"
+  "/auth/register/page": "app/auth/register/page.js"
 }
