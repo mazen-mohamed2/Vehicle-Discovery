@@ -36,6 +36,7 @@ import {
   type DealerInventorySort,
 } from "@/lib/dealer-inventory";
 import type { FuelType, Transmission } from "@/lib/types";
+import { useAuth } from "@/hooks/use-auth";
 
 const defaultFilters: DealerInventoryFilters = {
   search: "",
@@ -48,6 +49,7 @@ const defaultFilters: DealerInventoryFilters = {
 
 export function DealerDetailClient({ id }: { id: string }) {
   const { t, locale } = useI18n();
+  const auth = useAuth();
   const [filters, setFilters] = useState(defaultFilters);
   const deferredSearch = useDeferredValue(filters.search);
   const { data: agency } = useSuspenseQuery({
@@ -85,7 +87,9 @@ export function DealerDetailClient({ id }: { id: string }) {
     value: DealerInventoryFilters[Key],
   ) => setFilters((current) => ({ ...current, [key]: value }));
   const placeholderAction = (action: string) =>
-    toast.info(action, { description: t("dealer.contact.placeholder") });
+    auth.requireAuth(`/dealers/${id}`, () =>
+      toast.info(action, { description: t("dealer.contact.placeholder") }),
+    );
 
   return (
     <main>

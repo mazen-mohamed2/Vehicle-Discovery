@@ -40,6 +40,7 @@ import { toast } from "sonner";
 import { VehicleGallery } from "./vehicle-gallery";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useCompare } from "@/hooks/use-compare";
+import { useAuth } from "@/hooks/use-auth";
 
 export function VehicleDetailClient({
   vehicle: v,
@@ -57,6 +58,8 @@ export function VehicleDetailClient({
   const saved = isFavorite(v.id);
   const { isCompared, toggleCompare, isHydrating: compareHydrating } = useCompare();
   const compared = isCompared(v.id);
+  const auth = useAuth();
+  const returnPath = `/vehicles/${v.id}`;
 
   const overview = [
     [t("form.year"), formatYear(v.year, locale)],
@@ -139,7 +142,9 @@ export function VehicleDetailClient({
               <Button
                 size="lg"
                 className="col-span-2 gradient-primary text-primary-foreground shadow-elegant"
-                title={t("common.soon")}
+                onClick={() =>
+                  auth.requireAuth(returnPath, () => toast.info(t("auth.action.soon")))
+                }
               >
                 <Phone className="me-2 h-4 w-4" /> {t("vehicle.contactSeller")}
               </Button>
@@ -192,7 +197,7 @@ export function VehicleDetailClient({
               variant="ghost"
               size="sm"
               className="mt-2 w-full text-muted-foreground"
-              onClick={() => setReportOpen(true)}
+              onClick={() => auth.requireAuth(returnPath, () => setReportOpen(true))}
             >
               <Flag className="me-2 h-4 w-4" /> {t("vehicle.report")}
             </Button>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, Menu, Moon, Scale, Sun, Globe, User, X } from "lucide-react";
+import { Heart, Menu, Moon, Scale, Sun, Globe, X } from "lucide-react";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 import { useCompare } from "@/hooks/use-compare";
 import { useFavorites } from "@/hooks/use-favorites";
 import { formatNumber } from "@/lib/locale";
+import { AuthNavigation } from "@/components/auth/AuthNavigation";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 export function SiteHeader() {
   const { t, locale, setLocale, theme, setTheme } = useI18n();
@@ -18,6 +21,7 @@ export function SiteHeader() {
   const { compareCount, isHydrating: compareHydrating } = useCompare();
   const { favorites, isHydrating: favoritesHydrating } = useFavorites();
   const favoritesCount = favorites.length;
+  const auth = useAuth();
   const favoritesLabel = favoritesHydrating
     ? t("nav.favorites")
     : t("nav.favoritesWithCount").replace("{count}", formatNumber(favoritesCount, locale));
@@ -103,20 +107,15 @@ export function SiteHeader() {
               <span>({formatNumber(compareCount, locale)})</span>
             )}
           </Link>
-          <Link href="/auth/login" className="hidden md:inline-flex">
-            <Button variant="ghost" size="sm" className="h-9">
-              <User className="h-4 w-4 me-1.5" />
-              {t("nav.login")}
-            </Button>
-          </Link>
-          <Link href="/vehicles" className="hidden md:inline-flex">
-            <Button
-              size="sm"
-              className="h-9 gradient-primary text-primary-foreground shadow-elegant hover:opacity-90"
-            >
-              {t("nav.sell")}
-            </Button>
-          </Link>
+          <AuthNavigation />
+          <Button
+            type="button"
+            onClick={() => auth.requireAuth("/vehicles", () => toast.info(t("auth.action.soon")))}
+            size="sm"
+            className="hidden h-9 gradient-primary text-primary-foreground shadow-elegant hover:opacity-90 md:inline-flex"
+          >
+            {t("nav.sell")}
+          </Button>
 
           <button
             onClick={() => setOpen((o) => !o)}
@@ -173,18 +172,17 @@ export function SiteHeader() {
                 <span>({formatNumber(compareCount, locale)})</span>
               )}
             </Link>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <Link href="/auth/login" onClick={() => setOpen(false)}>
-                <Button variant="outline" size="sm" className="w-full">
-                  {t("nav.login")}
-                </Button>
-              </Link>
-              <Link href="/vehicles" onClick={() => setOpen(false)}>
-                <Button size="sm" className="w-full gradient-primary text-primary-foreground">
-                  {t("nav.sell")}
-                </Button>
-              </Link>
-            </div>
+            <AuthNavigation mobile onNavigate={() => setOpen(false)} />
+            <Button
+              size="sm"
+              onClick={() => {
+                setOpen(false);
+                auth.requireAuth("/vehicles", () => toast.info(t("auth.action.soon")));
+              }}
+              className="mt-2 w-full gradient-primary text-primary-foreground"
+            >
+              {t("nav.sell")}
+            </Button>
             <div className="mt-2 flex items-center justify-between text-sm">
               <button
                 onClick={() => setLocale(locale === "ar" ? "en" : "ar")}

@@ -18,8 +18,13 @@ export const queryKeys = {
   },
   favorites: {
     all: ["favorites"] as const,
+    byScope: (scope: import("@/lib/storage-scope").StorageScope) => ["favorites", scope] as const,
   },
   compare: {
     all: ["compare"] as const,
+    byScope: (scope: import("@/lib/storage-scope").StorageScope) => ["compare", scope] as const,
+  },
+  auth: {
+    session: ["auth", "session"] as const,
   },
 } as const;

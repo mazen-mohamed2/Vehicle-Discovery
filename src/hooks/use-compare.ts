@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { useHydrationReady } from "@/hooks/use-hydration-ready";
+import { useAuth } from "@/hooks/use-auth";
+import { authStorageScope } from "@/lib/storage-scope";
 import {
   compareService,
   MAX_COMPARE_VEHICLES,
@@ -13,20 +15,30 @@ import {
 export function useCompare() {
   const queryClient = useQueryClient();
   const hydrationReady = useHydrationReady();
-  const query = useQuery({ queryKey: queryKeys.compare.all, queryFn: compareService.list });
+  const auth = useAuth();
+  const scope = authStorageScope(auth.user);
+  const queryKey = useMemo(() => queryKeys.compare.byScope(scope), [scope]);
+  const query = useQuery({
+    queryKey,
+    queryFn: () => compareService.list(scope),
+    enabled: !auth.isHydrating,
+    refetchOnMount: "always",
+  });
+  useEffect(
+    () => compareService.subscribe(scope, () => void queryClient.invalidateQueries({ queryKey })),
+    [queryClient, queryKey, scope],
+  );
   const comparedIds = useMemo(() => query.data ?? [], [query.data]);
   const mutation = useMutation({
-    mutationFn: compareService.replace,
+    mutationFn: (ids: string[]) => compareService.replace(scope, ids),
     onMutate: async (nextIds: string[]) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.compare.all });
-      const previous = queryClient.getQueryData<string[]>(queryKeys.compare.all) ?? [];
-      const next = normalizeCompareIds(nextIds);
-      queryClient.setQueryData<string[]>(queryKeys.compare.all, next);
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<string[]>(queryKey) ?? [];
+      queryClient.setQueryData<string[]>(queryKey, normalizeCompareIds(nextIds));
       return { previous };
     },
-    onError: (_error, _variables, context) =>
-      queryClient.setQueryData(queryKeys.compare.all, context?.previous),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.compare.all }),
+    onError: (_error, _variables, context) => queryClient.setQueryData(queryKey, context?.previous),
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
   const isCompared = useCallback(
     (listingId: string) => comparedIds.includes(listingId),
@@ -43,12 +55,12 @@ export function useCompare() {
     replaceCompare(comparedIds.filter((id) => id !== listingId));
   const toggleCompare = (listingId: string) =>
     isCompared(listingId) ? (removeFromCompare(listingId), true) : addToCompare(listingId);
-
   return {
     comparedIds,
     compareCount: comparedIds.length,
     canCompare: comparedIds.length < MAX_COMPARE_VEHICLES,
-    isHydrating: !hydrationReady || query.isPending,
+    scope,
+    isHydrating: !hydrationReady || auth.isHydrating || query.isPending,
     isCompared,
     addToCompare,
     removeFromCompare,

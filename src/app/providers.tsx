@@ -6,6 +6,7 @@ import { I18nProvider } from "@/lib/i18n";
 import type { Locale, Theme } from "@/lib/i18n";
 import { CompareTray } from "@/components/marketplace/CompareTray";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthLifecycle } from "@/components/auth/AuthLifecycle";
 
 export function Providers({
   children,
@@ -35,6 +36,7 @@ export function Providers({
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider initialLocale={locale} initialTheme={theme}>
+        <AuthLifecycle />
         {children}
         <CompareTray />
         <Toaster position={locale === "ar" ? "bottom-left" : "bottom-right"} />

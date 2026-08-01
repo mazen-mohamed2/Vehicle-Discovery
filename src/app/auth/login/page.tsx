@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { LoginClient } from "./login-client";
 import { getRequestLocale, pageMetadata } from "@/lib/server-locale";
 
@@ -9,5 +10,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function LoginPage() {
-  return <LoginClient />;
+  return (
+    <Suspense>
+      <LoginClient />
+    </Suspense>
+  );
 }

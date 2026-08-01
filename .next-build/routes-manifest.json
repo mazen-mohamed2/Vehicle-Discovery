@@ -56,6 +56,24 @@
       "namedRegex": "^/about(?:/)?$"
     },
     {
+      "page": "/account",
+      "regex": "^/account(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/account(?:/)?$"
+    },
+    {
+      "page": "/account/profile",
+      "regex": "^/account/profile(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/account/profile(?:/)?$"
+    },
+    {
+      "page": "/auth/forgot-password",
+      "regex": "^/auth/forgot\\-password(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/auth/forgot\\-password(?:/)?$"
+    },
+    {
       "page": "/auth/login",
       "regex": "^/auth/login(?:/)?$",
       "routeKeys": {},
@@ -66,6 +84,12 @@
       "regex": "^/auth/register(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/auth/register(?:/)?$"
+    },
+    {
+      "page": "/auth/reset-password",
+      "regex": "^/auth/reset\\-password(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/auth/reset\\-password(?:/)?$"
     },
     {
       "page": "/c2c",
@@ -84,6 +108,12 @@
       "regex": "^/contact(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/contact(?:/)?$"
+    },
+    {
+      "page": "/dealer-account",
+      "regex": "^/dealer\\-account(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dealer\\-account(?:/)?$"
     },
     {
       "page": "/dealers",

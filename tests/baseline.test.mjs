@@ -59,7 +59,7 @@ test("dealer card counts use the same scoped inventory as dealer details", async
 test("favorites use shared optimistic query mutation", async () => {
   const card = await read("src/components/marketplace/VehicleCard.tsx");
   const hook = await read("src/hooks/use-favorites.ts");
-  for (const pattern of [/useMutation/, /queryKeys\.favorites\.all/, /onMutate/, /onError/])
+  for (const pattern of [/useMutation/, /queryKeys\.favorites\.byScope/, /onMutate/, /onError/])
     assert.match(hook, pattern);
   assert.match(card, /useFavorites/);
   assert.match(card, /aria-pressed/);
@@ -259,19 +259,18 @@ test("vehicle detail metadata and invalid route handling are production-ready", 
 test("favorites hydrate from browser storage and persist every mutation", async () => {
   const service = await read("src/services/favorites.service.ts");
   const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
-  assert.match(service, /const storageKey = "sd-favorites"/);
-  assert.match(service, /window\.localStorage\.getItem\(storageKey\)/);
-  assert.match(service, /store\.set\(item\.listingId/);
-  assert.match(service, /window\.localStorage\.setItem\(storageKey/);
-  assert.match(service, /hydrate\(\);\s*return delay\(Array\.from\(store\.values\(\)\)\)/);
-  assert.match(service, /store\.set\(listingId, fav\);\s*persist\(\)/);
-  assert.match(service, /store\.delete\(listingId\);\s*persist\(\)/);
+  assert.match(service, /const legacyKey = "sd-favorites"/);
+  assert.match(service, /scopedStorageKey\(legacyKey, scope\)/);
+  assert.match(service, /list: \(scope: StorageScope\)/);
+  assert.match(service, /add: \(scope: StorageScope, listingId: string\)/);
+  assert.match(service, /remove: \(scope: StorageScope, listingId: string\)/);
+  assert.match(service, /localStorage\.setItem\(key/);
   assert.match(detail, /useFavorites\(\)/);
 });
 
 test("report listing opens an accessible reason dialog and confirms locally", async () => {
   const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
-  assert.match(detail, /onClick=\{\(\) => setReportOpen\(true\)\}/);
+  assert.match(detail, /auth\.requireAuth\(returnPath, \(\) => setReportOpen\(true\)\)/);
   assert.match(detail, /<Dialog open=\{open\} onOpenChange=\{onOpenChange\}>/);
   assert.match(detail, /<DialogTitle>/);
   assert.match(detail, /<DialogDescription>/);
@@ -402,14 +401,14 @@ test("all vehicle surfaces share one persisted favorite cache and canonical list
   const discovery = await read("src/components/marketplace/VehicleDiscovery.tsx");
   const home = await read("src/app/(site)/home-client.tsx");
 
-  assert.match(hook, /queryKey: queryKeys\.favorites\.all/);
-  assert.match(hook, /queryFn: favoritesService\.list/);
+  assert.match(hook, /queryKeys\.favorites\.byScope\(scope\)/);
+  assert.match(hook, /favoritesService\.list\(scope\)/);
   assert.match(hook, /favorite\.listingId === listingId/);
-  assert.match(hook, /favoritesService\.add\(listingId\)/);
-  assert.match(hook, /favoritesService\.remove\(listingId\)/);
+  assert.match(hook, /favoritesService\.add\(scope, listingId\)/);
+  assert.match(hook, /favoritesService\.remove\(scope, listingId\)/);
   assert.match(hook, /onError:.*context/s);
-  assert.match(hook, /setQueryData\(queryKeys\.favorites\.all, context\?\.previous\)/);
-  assert.match(hook, /invalidateQueries\(\{ queryKey: queryKeys\.favorites\.all \}\)/);
+  assert.match(hook, /setQueryData\(queryKey, context\?\.previous\)/);
+  assert.match(hook, /invalidateQueries\(\{ queryKey \}\)/);
 
   assert.match(card, /useFavorites\(\)/);
   assert.match(detail, /useFavorites\(\)/);
@@ -445,8 +444,8 @@ test("favorites page uses shared hydration, search, sorting, saved dates, and co
   assert.match(page, /<AlertDialogCancel>/);
   assert.match(page, /clearFavorites\(\)/);
   assert.match(hook, /clearMutation/);
-  assert.match(hook, /queryClient\.setQueryData<Favorite\[]>\(queryKeys\.favorites\.all, \[]\)/);
-  assert.match(service, /clear: \(\): Promise<void>/);
+  assert.match(hook, /queryClient\.setQueryData<Favorite\[]>\(queryKey, \[]\)/);
+  assert.match(service, /clear: \(scope: StorageScope\)/);
 });
 
 test("compare has one persisted optimistic architecture with a four-vehicle maximum", async () => {
@@ -454,13 +453,13 @@ test("compare has one persisted optimistic architecture with a four-vehicle maxi
   const hook = await read("src/hooks/use-compare.ts");
   const keys = await read("src/lib/query-keys.ts");
   assert.match(service, /MAX_COMPARE_VEHICLES = 4/);
-  assert.match(service, /storageKey = "sd-compare"/);
+  assert.match(service, /legacyKey = "sd-compare"/);
   assert.match(service, /new Set/);
   assert.match(service, /\.slice\(0, MAX_COMPARE_VEHICLES\)/);
   assert.match(service, /localStorage\.getItem/);
   assert.match(service, /localStorage\.setItem/);
-  assert.match(hook, /queryKey: queryKeys\.compare\.all/);
-  assert.match(hook, /queryFn: compareService\.list/);
+  assert.match(hook, /queryKeys\.compare\.byScope\(scope\)/);
+  assert.match(hook, /compareService\.list\(scope\)/);
   assert.match(hook, /addToCompare/);
   assert.match(hook, /removeFromCompare/);
   assert.match(hook, /toggleCompare/);
@@ -553,7 +552,7 @@ test("persisted favorite and compare controls use matching server hydration snap
   assert.match(hydration, /getServerSnapshot = \(\) => false/);
   for (const hook of [favorites, compare]) {
     assert.match(hook, /useHydrationReady\(\)/);
-    assert.match(hook, /isHydrating: !hydrationReady \|\| query\.isPending/);
+    assert.match(hook, /isHydrating: !hydrationReady \|\| auth\.isHydrating \|\| query\.isPending/);
   }
   assert.match(card, /compareHydrating \? \(/);
   assert.match(card, /<Skeleton/);
@@ -571,8 +570,8 @@ test("compare clear and final removal cannot be restored by a stale URL", async 
   assert.match(page, /const next = comparedIds\.filter\(\(item\) => item !== id\)/);
   assert.match(page, /setComparison\(next\)/);
   assert.match(page, /setComparison\(\[]\)/);
-  assert.match(service, /next\.length > 0/);
-  assert.match(service, /localStorage\.removeItem\(storageKey\)/);
+  assert.match(service, /if \(ids\.length\)/);
+  assert.match(service, /localStorage\.removeItem\(key\)/);
 });
 
 test("compare renders dedicated zero, one, and multi-vehicle states", async () => {
@@ -622,10 +621,186 @@ test("shared header exposes synchronized desktop and mobile favorites navigation
   assert.match(header, /nav\.favoritesWithCount/);
   assert.match(header, /aria-label=\{favoritesLabel\}/);
   assert.match(header, /aria-current=\{pathname === "\/favorites" \? "page" : undefined\}/);
-  assert.match(hook, /queryKey: queryKeys\.favorites\.all/);
+  assert.match(hook, /queryKeys\.favorites\.byScope\(scope\)/);
   assert.match(hook, /queryClient\.setQueryData<Favorite\[]>/);
   assert.match(hook, /clearFavorites: clearMutation\.mutate/);
   assert.doesNotMatch(header, /favoritesService|localStorage|queryKeys\.favorites/);
   assert.match(i18n, /"nav\.favoritesWithCount": "المفضلة \(\{count\}\)"/);
   assert.match(i18n, /"nav\.favoritesWithCount": "Favorites \(\{count\}\)"/);
+});
+
+test("authentication has one sanitized hydration-aware query source", async () => {
+  const [service, hook, keys, types] = await Promise.all([
+    read("src/services/auth.service.ts"),
+    read("src/hooks/use-auth.ts"),
+    read("src/lib/query-keys.ts"),
+    read("src/lib/auth.ts"),
+  ]);
+  assert.match(keys, /auth:[\s\S]*session: \["auth", "session"\]/);
+  assert.match(hook, /queryKeys\.auth\.session/);
+  assert.match(hook, /useHydrationReady/);
+  assert.match(hook, /isGuest: !isHydrating && !user/);
+  assert.match(service, /parseAuthSession/);
+  assert.match(service, /Number\.isFinite\(expiresAt\)/);
+  assert.match(service, /JSON\.parse/);
+  assert.doesNotMatch(types, /password.*AuthUser|AuthUser.*password/i);
+  assert.doesNotMatch(service, /JWT|refreshToken|accessToken/);
+});
+
+test("auth credentials normalize safely and return paths reject redirects and login loops", async () => {
+  const [auth, service, login] = await Promise.all([
+    read("src/lib/auth.ts"),
+    read("src/services/auth.service.ts"),
+    read("src/app/auth/login/login-client.tsx"),
+  ]);
+  assert.match(auth, /trim\(\)\.toLowerCase\(\)/);
+  assert.match(auth, /normalizeEgyptPhone/);
+  assert.match(auth, /decoded\.startsWith\("\/\/"\)/);
+  assert.match(auth, /url\.origin !== "https:\/\/local\.invalid"/);
+  assert.match(auth, /url\.pathname\.startsWith\("\/auth\/"\)/);
+  assert.match(service, /INVALID_CREDENTIALS/);
+  assert.match(login, /safeReturnPath\(params\.get\("returnTo"\)\)/);
+  assert.match(login, /if \(auth\.isPending\) return/);
+});
+
+test("registration and recovery never persist submitted passwords", async () => {
+  const [service, register, forgot, reset] = await Promise.all([
+    read("src/services/auth.service.ts"),
+    read("src/app/auth/register/register-client.tsx"),
+    read("src/app/auth/forgot-password/forgot-password-client.tsx"),
+    read("src/app/auth/reset-password/reset-password-client.tsx"),
+  ]);
+  assert.match(register, /<RadioGroup/);
+  assert.match(register, /validateRegistration/);
+  assert.match(register, /password !== confirmation/);
+  assert.match(register, /data\.get\("terms"\)/);
+  assert.match(service, /const result = persist\(createSession\(user, "session"\)\)/);
+  assert.doesNotMatch(service, /localStorage\.setItem\([^\n]+password/i);
+  assert.match(service, /forgotPassword[\s\S]*accepted: true/);
+  assert.match(reset, /missing.*invalid.*expired.*used.*valid/s);
+  assert.match(reset, /e\.currentTarget\.reset\(\)/);
+  assert.match(forgot, /if \(pending\) return/);
+});
+
+test("auth navigation, protection, and marketplace actions share useAuth", async () => {
+  const [navigation, boundary, header, vehicle, dealer] = await Promise.all([
+    read("src/components/auth/AuthNavigation.tsx"),
+    read("src/components/auth/AuthBoundary.tsx"),
+    read("src/components/site/SiteHeader.tsx"),
+    read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx"),
+    read("src/app/(site)/dealers/[id]/dealer-detail-client.tsx"),
+  ]);
+  assert.match(navigation, /auth\.isHydrating/);
+  assert.match(navigation, /auth\.isGuest/);
+  assert.match(navigation, /auth\.role === "dealer"/);
+  assert.match(navigation, /auth\.logout/);
+  assert.match(boundary, /AuthBoundary/);
+  assert.match(boundary, /returnTo=/);
+  assert.match(boundary, /if \(auth\.isHydrating \|\| auth\.isGuest\)/);
+  assert.match(header, /<AuthNavigation/);
+  assert.match(header, /useFavorites/);
+  assert.match(header, /useCompare/);
+  assert.match(vehicle, /auth\.requireAuth\(returnPath/);
+  assert.match(dealer, /auth\.requireAuth\(`\/dealers\/\$\{id\}`/);
+});
+
+test("auth pages are private metadata routes and security limitations are documented", async () => {
+  const [login, register, forgot, reset, account, dealer, docs] = await Promise.all([
+    read("src/app/auth/login/page.tsx"),
+    read("src/app/auth/register/page.tsx"),
+    read("src/app/auth/forgot-password/page.tsx"),
+    read("src/app/auth/reset-password/page.tsx"),
+    read("src/app/(site)/account/page.tsx"),
+    read("src/app/(site)/dealer-account/page.tsx"),
+    read("DEVELOPMENT.md"),
+  ]);
+  for (const page of [login, register, forgot, reset, account, dealer])
+    assert.match(page, /index: false, follow: false/);
+  assert.match(docs, /HttpOnly/);
+  assert.match(docs, /Argon2id/);
+  assert.match(docs, /CSRF/);
+  assert.match(docs, /Content Security\s+Policy/);
+  assert.match(docs, /Favorites, Compare/);
+  assert.match(docs, /NEXT_DIST_DIR=\.next-build npm run build/);
+});
+
+test("favorites and compare derive isolated guest, user, and dealer scopes from canonical ids", async () => {
+  const [scope, favorites, compare, favoriteHook, compareHook, keys] = await Promise.all([
+    read("src/lib/storage-scope.ts"),
+    read("src/services/favorites.service.ts"),
+    read("src/services/compare.service.ts"),
+    read("src/hooks/use-favorites.ts"),
+    read("src/hooks/use-compare.ts"),
+    read("src/lib/query-keys.ts"),
+  ]);
+  assert.match(scope, /if \(!user\) return "guest"/);
+  assert.match(scope, /`\$\{user\.role\}:\$\{user\.id\}`/);
+  assert.doesNotMatch(scope, /displayName|email|dealerId|pathname/);
+  assert.match(keys, /favorites[\s\S]*byScope/);
+  assert.match(keys, /compare[\s\S]*byScope/);
+  for (const hook of [favoriteHook, compareHook]) {
+    assert.match(hook, /authStorageScope\(auth\.user\)/);
+    assert.match(hook, /enabled: !auth\.isHydrating/);
+    assert.match(hook, /auth\.isHydrating \|\| query\.isPending/);
+    assert.match(hook, /subscribe\(scope/);
+  }
+  assert.match(favorites, /scopedStorageKey\(legacyKey, scope\)/);
+  assert.match(compare, /scopedStorageKey\(legacyKey, scope\)/);
+});
+
+test("legacy global collections migrate once to guest without account merging", async () => {
+  const [favorites, compare, docs] = await Promise.all([
+    read("src/services/favorites.service.ts"),
+    read("src/services/compare.service.ts"),
+    read("DEVELOPMENT.md"),
+  ]);
+  for (const service of [favorites, compare]) {
+    assert.match(service, /migrateLegacyGuest/);
+    assert.match(service, /scopedStorageKey\(legacyKey, "guest"\)/);
+    assert.match(service, /localStorage\.getItem\(guestKey\) === null/);
+    assert.match(service, /localStorage\.removeItem\(legacyKey\)/);
+    assert.match(service, /if \(scope === "guest"\) migrateLegacyGuest\(\)/);
+  }
+  assert.match(favorites, /new Map<string, Favorite>/);
+  assert.match(compare, /new Set/);
+  assert.match(docs, /never copied to an authenticated account/);
+  assert.match(docs, /not automatically merged on login/);
+});
+
+test("active-scope subscriptions ignore unrelated storage changes", async () => {
+  const [favorites, compare] = await Promise.all([
+    read("src/services/favorites.service.ts"),
+    read("src/services/compare.service.ts"),
+  ]);
+  for (const service of [favorites, compare]) {
+    assert.match(service, /const key = scopedStorageKey\(legacyKey, scope\)/);
+    assert.match(service, /if \(event\.key === key\) callback\(\)/);
+    assert.match(service, /detail === scope/);
+    assert.match(service, /window\.addEventListener\("storage"/);
+  }
+});
+
+test("login normalization trims boundaries, ignores email case, and preserves invalid internal spaces", async () => {
+  const [auth, service] = await Promise.all([
+    read("src/lib/auth.ts"),
+    read("src/services/auth.service.ts"),
+  ]);
+  assert.match(auth, /value\.trim\(\)\.toLowerCase\(\)/);
+  const emailNormalizer = auth.match(/function normalizeEmail[\s\S]*?\n\}/)?.[0] ?? "";
+  assert.doesNotMatch(emailNormalizer, /replace\(/);
+  assert.match(service, /validateLogin\(credentials\)/);
+  assert.match(service, /user\.email === normalized\.identifier/);
+});
+
+test("role-denied state explains denial and offers account and home actions", async () => {
+  const [boundary, i18n] = await Promise.all([
+    read("src/components/auth/AuthBoundary.tsx"),
+    read("src/lib/i18n.tsx"),
+  ]);
+  assert.match(boundary, /auth\.unauthorized/);
+  assert.match(boundary, /auth\.role === "dealer" \? "\/dealer-account" : "\/account"/);
+  assert.match(boundary, /<Link href="\/">/);
+  assert.match(i18n, /"auth\.roleDenied\.account": "Go to my account"/);
+  assert.match(i18n, /"auth\.roleDenied\.home": "Go home"/);
+  assert.match(i18n, /"auth\.roleDenied\.account": "الذهاب إلى حسابي"/);
 });
