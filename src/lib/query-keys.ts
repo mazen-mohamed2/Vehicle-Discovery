@@ -27,4 +27,10 @@ export const queryKeys = {
   auth: {
     session: ["auth", "session"] as const,
   },
+  managedListings: {
+    owned: (scope: import("@/lib/storage-scope").StorageScope) =>
+      ["managed-listings", scope, "owned"] as const,
+    detail: (scope: import("@/lib/storage-scope").StorageScope, id: string) =>
+      ["managed-listings", scope, "detail", id] as const,
+  },
 } as const;

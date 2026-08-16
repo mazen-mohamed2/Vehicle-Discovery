@@ -12,7 +12,6 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { formatNumber } from "@/lib/locale";
 import { AuthNavigation } from "@/components/auth/AuthNavigation";
 import { useAuth } from "@/hooks/use-auth";
-import { toast } from "sonner";
 
 export function SiteHeader() {
   const { t, locale, setLocale, theme, setTheme } = useI18n();
@@ -110,7 +109,7 @@ export function SiteHeader() {
           <AuthNavigation />
           <Button
             type="button"
-            onClick={() => auth.requireAuth("/vehicles", () => toast.info(t("auth.action.soon")))}
+            onClick={() => auth.requireAuth("/sell", () => window.location.assign("/sell"))}
             size="sm"
             className="hidden h-9 gradient-primary text-primary-foreground shadow-elegant hover:opacity-90 md:inline-flex"
           >
@@ -177,7 +176,7 @@ export function SiteHeader() {
               size="sm"
               onClick={() => {
                 setOpen(false);
-                auth.requireAuth("/vehicles", () => toast.info(t("auth.action.soon")));
+                auth.requireAuth("/sell", () => window.location.assign("/sell"));
               }}
               className="mt-2 w-full gradient-primary text-primary-foreground"
             >

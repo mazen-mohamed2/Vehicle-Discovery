@@ -59,6 +59,7 @@ export function DealerDetailClient({ id }: { id: string }) {
   const inventoryQuery = useQuery({
     queryKey: queryKeys.listings.byAgency(id),
     queryFn: () => listingsService.byAgency(id),
+    refetchOnMount: "always",
   });
   const { data: recommendations } = useSuspenseQuery({
     queryKey: queryKeys.agencies.similar(id, 3),

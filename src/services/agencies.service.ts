@@ -1,12 +1,14 @@
 import type { Agency, AgencyRecommendation } from "@/lib/types";
-import { mockAgencies, mockListings } from "./mock-data";
+import { mockAgencies } from "./mock-data";
+import { publicCatalogService } from "./public-catalog.service";
 
 const delay = <T>(v: T, ms = 120) => new Promise<T>((r) => setTimeout(() => r(v), ms));
 
 function similarTo(agencyId: string, limit: number): AgencyRecommendation[] {
   const source = mockAgencies.find((agency) => agency.id === agencyId);
   if (!source) return [];
-  const sourceInventory = mockListings.filter(
+  const catalog = publicCatalogService.list();
+  const sourceInventory = catalog.filter(
     (listing) => listing.sellerType === "agency" && listing.sellerId === agencyId,
   );
   const sourceBrands = new Set(sourceInventory.map((listing) => listing.make));
@@ -14,7 +16,7 @@ function similarTo(agencyId: string, limit: number): AgencyRecommendation[] {
   return mockAgencies
     .filter((agency) => agency.id !== agencyId)
     .map((agency) => {
-      const inventory = mockListings.filter(
+      const inventory = catalog.filter(
         (listing) => listing.sellerType === "agency" && listing.sellerId === agency.id,
       );
       const sharedBrands = [...new Set(inventory.map((listing) => listing.make))].filter((brand) =>

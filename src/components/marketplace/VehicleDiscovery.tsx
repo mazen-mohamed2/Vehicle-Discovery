@@ -127,6 +127,7 @@ export function VehicleDiscovery({ lockedSellerType, emptyTitle, emptyDescriptio
     queryKey: queryKeys.listings.discovery(params),
     queryFn: () => listingsService.discover(params),
     placeholderData: keepPreviousData,
+    refetchOnMount: "always",
   });
   const result = query.data;
   const clear = () => {

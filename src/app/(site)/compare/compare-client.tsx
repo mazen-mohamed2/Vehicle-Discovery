@@ -40,6 +40,7 @@ export function CompareClient() {
   const listingsQuery = useQuery({
     queryKey: queryKeys.listings.all,
     queryFn: listingsService.list,
+    refetchOnMount: "always",
   });
   const all = useMemo(() => listingsQuery.data ?? [], [listingsQuery.data]);
   const validIds = useMemo(() => new Set(all.map((vehicle) => vehicle.id)), [all]);

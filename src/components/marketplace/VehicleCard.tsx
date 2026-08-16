@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, MapPin, Gauge, Scale, ShieldCheck, Star } from "lucide-react";
+import { Heart, ImageOff, MapPin, Gauge, Scale, ShieldCheck, Star } from "lucide-react";
 import { toast } from "sonner";
 import type { VehicleListing } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
@@ -25,13 +25,20 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-2xl surface-card shadow-card transition-all hover:-translate-y-1 hover:shadow-elegant">
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-        <Image
-          src={v.images[0].url}
-          alt={v.images[0].alt}
-          fill
-          sizes="(min-width: 1280px) 22vw, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, 90vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {v.images[0] ? (
+          <Image
+            src={v.images[0].url}
+            alt={v.images[0].alt}
+            fill
+            sizes="(min-width: 1280px) 22vw, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, 90vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+            <ImageOff className="h-9 w-9" aria-hidden="true" />
+            <span className="text-xs font-semibold">{t("vehicle.gallery.noImages")}</span>
+          </div>
+        )}
         <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
           <div className="flex flex-wrap gap-1.5">
             {v.featured && (

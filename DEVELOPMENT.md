@@ -91,3 +91,48 @@ Use the helpers in `src/lib/locale.ts` for numbers, currency, dates, relative ti
 Discovery state is parsed from the URL by `src/lib/vehicle-discovery.ts`. The reusable UI updates URL parameters, and `listingsService.discover()` owns all search, filter, sort, facet, and pagination behavior. TanStack Query keys include the normalized discovery parameters, so browser navigation and shared URLs restore the same results without coupling filtering to components.
 
 To add a filter, extend `VehicleDiscoveryParams`, parse its URL value, add the service predicate, expose the control in `VehicleDiscovery`, and add both translations. A future backend can replace `listingsService.discover()` with a paginated API call while preserving the URL, component, and query-key contracts.
+
+# Sprint 7: vehicle listing creation and management
+
+Sprint 7 adds an authenticated, backend-replaceable listing workflow. `/sell` enters the protected flow, `/account/listings` owns management, and new/edit/preview routes are private and `noindex`. React components use `useManagedListings`; all ownership validation, persistence, status transitions, completion calculation, and public mapping remain in the managed-listing service.
+
+## Lifecycle and authorization
+
+| Current status    | Allowed transition | Result                                               |
+| ----------------- | ------------------ | ---------------------------------------------------- |
+| Draft             | Publish            | Published after full validation                      |
+| Published         | Sold               | Records `soldAt`, removes active public record       |
+| Published or sold | Archive            | Records `archivedAt`, removes active public record   |
+| Archived          | Restore            | Published when previously published, otherwise draft |
+| Draft or archived | Delete             | Permanently removed from the owner mock store        |
+| Any owned status  | Duplicate          | New canonical ID and draft workflow                  |
+
+Invalid transitions return `INVALID_STATUS_TRANSITION`. Service reads require the active canonical owner scope (`user:<id>` or `dealer:<id>`); guest access returns `UNAUTHENTICATED`. Route parameters are never treated as proof of ownership. Logout/account switching changes both the private query key and storage scope. The existing authentication lifecycle redirects protected content when the session disappears in another tab.
+
+## Persistence and catalog composition
+
+Owned records use `sd-owned-listings:<scope>`. Published records are mapped at the service boundary into the existing `VehicleListing` contract and composed with the seed catalog by `listingsService`; presentation components do not concatenate data sources. Canonical generated IDs use the `listing_` namespace and cannot collide with seed `v*` IDs. Query keys include the account scope for all private data, and listing mutations refresh private and public listing caches.
+
+This browser mock has an important server-rendering limitation: LocalStorage records are unavailable to a Next.js server process. They become visible to client-side public queries after hydration; a real backend will make created records available to server metadata, sitemap generation, and direct server-rendered detail requests. Drafts are never included in public metadata or the sitemap.
+
+## Images and future backend boundaries
+
+No real files are uploaded. Selected JPEG, PNG, and WebP files are validated (12 images maximum, 8 MB each) and represented by temporary Object URLs for the current tab. Blob/Object URLs and binary/base64 content are stripped before LocalStorage writes and are revoked on removal or wizard unmount. They do not survive a browser restart. Photos are optional for publishing under the frontend-only Sprint 7 policy; the demo-image action is an optional development convenience and is never assigned automatically. Persistent-media photo requirements will be restored when the real upload backend exists, without inventing a final production minimum during this sprint. A future upload repository should replace temporary URL creation with signed upload requests and persist only returned server asset IDs/URLs.
+
+No identity documents, vehicle documents, passwords, or security tokens are stored by the listing workflow. Vehicle and ownership verification statuses are future integration placeholders and never cause the UI to claim verification. A future moderation service can return `pending` from the existing publish boundary without changing component APIs. Future KYC and vehicle-document verification must use secure server storage and separate authorization policies.
+
+Seller declarations are collected only at publication and timestamped together. They are an implementation placeholder, not legal advice. Final Terms, Privacy, ownership authorization, and off-platform transaction language require review by qualified local legal counsel.
+
+## Manual QA
+
+1. As a guest, open `/sell`; confirm login receives the internal return path and no private form flashes.
+2. Log in as the individual and dealer fixtures; create and resume distinct drafts in each scope.
+3. Type quickly, leave the wizard, and confirm the same ID and latest values resume after autosave.
+4. Confirm incomplete drafts save but cannot publish; verify the localized error summary receives focus.
+5. Add, reorder, cover, and remove images with keyboard controls; confirm the temporary-image warning.
+6. Accept all four declarations, publish a complete listing, and verify discovery updates without a refresh.
+7. Duplicate, mark sold, archive, restore, and delete across their permitted states; cancel each destructive confirmation once.
+8. Switch Arabic/English and inspect mobile/tablet/desktop layouts, direction, labels, focus rings, and touch targets.
+9. Change accounts or log out from another tab while a private route is open; confirm access is removed and caches do not cross scopes.
+
+Known mock limitations: no actual upload, backend, moderation, KYC, document verification, payments, offers, or chat; temporary selected photos cannot survive restart; server-rendered SEO cannot observe browser-only published records until a backend exists.

@@ -25,18 +25,37 @@ test("all public route entry points exist", async () => {
   await Promise.all(routes.map(async (route) => assert.match(await read(route), /export default/)));
 });
 
-test("dynamic routes invoke notFound for invalid ids", async () => {
-  assert.match(await read("src/app/(site)/vehicles/[id]/page.tsx"), /if \(!vehicle\) notFound\(\)/);
+test("dynamic routes resolve browser-created vehicles and reject invalid dealers", async () => {
+  assert.match(
+    await read("src/app/(site)/vehicles/[id]/page.tsx"),
+    /if \(!vehicle\) return <PublicVehicleDetailResolver id={id} \/>/,
+  );
   assert.match(await read("src/app/(site)/dealers/[id]/page.tsx"), /if \(!agency\) notFound\(\)/);
 });
 
 test("dealer inventory is scoped and keyed by agency id", async () => {
   const service = await read("src/services/listings.service.ts");
+  const catalog = await read("src/services/public-catalog.service.ts");
   const page = await read("src/app/(site)/dealers/[id]/page.tsx");
   assert.match(service, /byAgency: \(agencyId: string\)/);
-  assert.match(service, /l\.sellerId === agencyId/);
+  assert.match(service, /publicCatalogService\.byAgency\(agencyId\)/);
+  assert.match(catalog, /listing\.sellerId === agencyId/);
   assert.match(page, /queryKeys\.listings\.byAgency\(id\)/);
   assert.match(page, /listingsService\.byAgency\(id\)/);
+});
+
+test("public listing consumers use one composed catalog and revalidate hydrated seed data", async () => {
+  const catalog = await read("src/services/public-catalog.service.ts");
+  const service = await read("src/services/listings.service.ts");
+  const discovery = await read("src/components/marketplace/VehicleDiscovery.tsx");
+  const detail = await read("src/app/(site)/vehicles/[id]/public-vehicle-detail-resolver.tsx");
+  const mutations = await read("src/hooks/use-managed-listings.ts");
+  assert.match(catalog, /mockListings, \.\.\.managedListingsService\.publicListings\(\)/);
+  assert.doesNotMatch(service, /mockListings/);
+  assert.match(service, /publicCatalogService\.(list|byId|byAgency)/);
+  assert.match(discovery, /refetchOnMount: "always"/);
+  assert.match(detail, /listingsService\.byId\(id\)/);
+  assert.match(mutations, /invalidateQueries\(\{ queryKey: \["listings"\] \}\)/);
 });
 
 test("dealer card counts use the same scoped inventory as dealer details", async () => {
@@ -213,6 +232,23 @@ test("vehicle gallery supports navigation, swipe, fullscreen, loading, and fallb
     assert.match(gallery, new RegExp(label.replaceAll(".", "\\.")));
 });
 
+test("zero-photo listings use safe shared fallbacks and photos are not publish-required", async () => {
+  const validators = await read("src/lib/listing-validators.ts");
+  const wizard = await read("src/components/listings/ListingWizard.tsx");
+  const card = await read("src/components/marketplace/VehicleCard.tsx");
+  const gallery = await read("src/app/(site)/vehicles/[id]/vehicle-gallery.tsx");
+  const compare = await read("src/app/(site)/compare/compare-client.tsx");
+  assert.doesNotMatch(validators, /fields\.images = "required"/);
+  assert.doesNotMatch(validators, /listing\.images\.length,\s*\]/);
+  assert.match(wizard, /"review",/);
+  assert.match(wizard, /active === "review"/);
+  assert.match(wizard, /listing\.image\.useDemo/);
+  assert.match(card, /v\.images\[0\] \?/);
+  assert.match(card, /vehicle\.gallery\.noImages/);
+  assert.match(gallery, /vehicle\.gallery\.noImages/);
+  assert.match(compare, /vehicle\.images\[0\] \?/);
+});
+
 test("vehicle detail presents grouped localized facts and seller-specific cards", async () => {
   const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
   const locale = await read("src/lib/locale.ts");
@@ -245,8 +281,11 @@ test("related vehicles are service-ranked and exclude the active listing", async
 
 test("vehicle detail metadata and invalid route handling are production-ready", async () => {
   const page = await read("src/app/(site)/vehicles/[id]/page.tsx");
+  const resolver = await read("src/app/(site)/vehicles/[id]/public-vehicle-detail-resolver.tsx");
   const notFound = await read("src/app/(site)/vehicles/[id]/not-found.tsx");
-  assert.match(page, /if \(!vehicle\) notFound\(\)/);
+  assert.match(page, /if \(!vehicle\) return <PublicVehicleDetailResolver id={id} \/>/);
+  assert.match(resolver, /if \(!vehicle\)/);
+  assert.match(resolver, /notFound\.vehicle/);
   assert.match(page, /alternates: \{ canonical:/);
   assert.match(page, /openGraph:/);
   assert.match(page, /twitter:/);
@@ -346,7 +385,7 @@ test("dealer inventory search, filters, and sorting remain local", async () => {
   assert.match(detail, /<VehicleCard key=\{vehicle\.id\}/);
   assert.match(detail, /<VehicleGridSkeleton/);
   assert.match(detail, /state\.dealer\.empty\.title/);
-  assert.match(service, /l\.sellerType === "agency" && l\.sellerId === agencyId/);
+  assert.match(service, /publicCatalogService\.byAgency\(agencyId\)/);
   assert.match(inventory, /listing\.bodyType === filters\.bodyType/);
   assert.match(inventory, /listing\.fuel === filters\.fuel/);
   assert.match(inventory, /listing\.transmission === filters\.transmission/);

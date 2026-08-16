@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { listingsService } from "@/services/listings.service";
 import { agenciesService } from "@/services/agencies.service";
 import { VehicleDetailClient } from "./vehicle-detail-client";
 import { getRequestLocale } from "@/lib/server-locale";
 import { formatCurrency, formatMileage, formatYear } from "@/lib/locale";
+import { PublicVehicleDetailResolver } from "./public-vehicle-detail-resolver";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function VehicleDetailPage({ params }: Props) {
   const { id } = await params;
   const vehicle = await listingsService.byId(id);
-  if (!vehicle) notFound();
+  if (!vehicle) return <PublicVehicleDetailResolver id={id} />;
 
   const [related, seller] = await Promise.all([
     listingsService.related(id, 4),

@@ -1,15 +1,16 @@
 import type { VehicleDiscoveryParams, VehicleDiscoveryResult, VehicleListing } from "@/lib/types";
-import { mockListings } from "./mock-data";
+import { publicCatalogService } from "./public-catalog.service";
 
 const delay = <T>(v: T, ms = 120) => new Promise<T>((r) => setTimeout(() => r(v), ms));
 
 const normalizeMake = (value: string) => value.toLowerCase().replace("-benz", "");
 
 function relatedTo(listingId: string, limit: number): VehicleListing[] {
-  const source = mockListings.find((listing) => listing.id === listingId);
+  const catalog = publicCatalogService.list();
+  const source = catalog.find((listing) => listing.id === listingId);
   if (!source) return [];
 
-  return mockListings
+  return catalog
     .filter((listing) => listing.id !== listingId)
     .map((listing) => ({
       listing,
@@ -24,8 +25,9 @@ function relatedTo(listingId: string, limit: number): VehicleListing[] {
 }
 
 function discover(params: VehicleDiscoveryParams): VehicleDiscoveryResult {
+  const catalog = publicCatalogService.list();
   const q = params.q?.toLowerCase();
-  let items = mockListings.filter((listing) => {
+  let items = catalog.filter((listing) => {
     const keywordMatch =
       !q ||
       [listing.title, listing.make, listing.model].some((value) => value.toLowerCase().includes(q));
@@ -69,41 +71,45 @@ function discover(params: VehicleDiscoveryParams): VehicleDiscoveryResult {
     pageSize: params.pageSize,
     totalPages,
     facets: {
-      makes: [...new Set(mockListings.map((item) => item.make))].sort(),
+      makes: [...new Set(catalog.map((item) => item.make))].sort(),
       models: [
         ...new Set(
-          mockListings
+          catalog
             .filter(
               (item) => !params.make || normalizeMake(item.make) === normalizeMake(params.make),
             )
             .map((item) => item.model),
         ),
       ].sort(),
-      years: [...new Set(mockListings.map((item) => item.year))].sort((a, b) => b - a),
-      locations: [...new Set(mockListings.map((item) => item.location))].sort(),
+      years: [...new Set(catalog.map((item) => item.year))].sort((a, b) => b - a),
+      locations: [...new Set(catalog.map((item) => item.location))].sort(),
       priceRange: [
-        Math.min(...mockListings.map((item) => item.price)),
-        Math.max(...mockListings.map((item) => item.price)),
+        Math.min(...catalog.map((item) => item.price)),
+        Math.max(...catalog.map((item) => item.price)),
       ],
       mileageRange: [
-        Math.min(...mockListings.map((item) => item.mileage)),
-        Math.max(...mockListings.map((item) => item.mileage)),
+        Math.min(...catalog.map((item) => item.mileage)),
+        Math.max(...catalog.map((item) => item.mileage)),
       ],
     },
   };
 }
 
 export const listingsService = {
-  list: (): Promise<VehicleListing[]> => delay(mockListings),
-  featured: (): Promise<VehicleListing[]> => delay(mockListings.filter((l) => l.featured)),
+  list: (): Promise<VehicleListing[]> => delay(publicCatalogService.list()),
+  featured: (): Promise<VehicleListing[]> =>
+    delay(publicCatalogService.list().filter((l) => l.featured)),
   recent: (limit = 6): Promise<VehicleListing[]> =>
-    delay([...mockListings].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit)),
-  byId: (id: string): Promise<VehicleListing | undefined> =>
-    delay(mockListings.find((l) => l.id === id)),
-  byOwner: (): Promise<VehicleListing[]> =>
-    delay(mockListings.filter((l) => l.sellerType === "individual")),
+    delay(
+      publicCatalogService
+        .list()
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .slice(0, limit),
+    ),
+  byId: (id: string): Promise<VehicleListing | undefined> => delay(publicCatalogService.byId(id)),
+  byOwner: (): Promise<VehicleListing[]> => delay(publicCatalogService.bySellerType("individual")),
   byAgency: (agencyId: string): Promise<VehicleListing[]> =>
-    delay(mockListings.filter((l) => l.sellerType === "agency" && l.sellerId === agencyId)),
+    delay(publicCatalogService.byAgency(agencyId)),
   related: (listingId: string, limit = 4): Promise<VehicleListing[]> =>
     delay(relatedTo(listingId, limit)),
   discover: (params: VehicleDiscoveryParams): Promise<VehicleDiscoveryResult> =>

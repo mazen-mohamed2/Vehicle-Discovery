@@ -188,6 +188,7 @@ function Featured() {
   const { data } = useSuspenseQuery({
     queryKey: queryKeys.listings.featured,
     queryFn: () => listingsService.featured(),
+    refetchOnMount: "always",
   });
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -243,6 +244,7 @@ function Agencies() {
     queries: data.map((agency) => ({
       queryKey: queryKeys.listings.byAgency(agency.id),
       queryFn: () => listingsService.byAgency(agency.id),
+      refetchOnMount: "always",
     })),
   });
   return (
@@ -329,6 +331,7 @@ function Recent() {
   const { data } = useSuspenseQuery({
     queryKey: queryKeys.listings.recent(6),
     queryFn: () => listingsService.recent(6),
+    refetchOnMount: "always",
   });
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">

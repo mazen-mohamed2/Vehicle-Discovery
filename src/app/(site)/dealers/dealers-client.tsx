@@ -28,6 +28,7 @@ export function DealersClient() {
     queries: data.map((agency) => ({
       queryKey: queryKeys.listings.byAgency(agency.id),
       queryFn: () => listingsService.byAgency(agency.id),
+      refetchOnMount: "always",
     })),
   });
   const inventoryLoading = inventoryQueries.some((query) => query.isLoading);

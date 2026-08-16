@@ -36,6 +36,7 @@ export function FavoritesClient() {
   const listingsQuery = useQuery({
     queryKey: queryKeys.listings.all,
     queryFn: listingsService.list,
+    refetchOnMount: "always",
   });
   const items = useMemo(() => {
     const favoriteById = new Map(favorites.map((favorite) => [favorite.listingId, favorite]));
