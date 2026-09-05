@@ -20,6 +20,38 @@
   },
   "dynamicRoutes": [
     {
+      "page": "/account/import-requests/[id]",
+      "regex": "^/account/import\\-requests/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/account/import\\-requests/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/account/listings/[listingId]/edit",
+      "regex": "^/account/listings/([^/]+?)/edit(?:/)?$",
+      "routeKeys": {
+        "nxtPlistingId": "nxtPlistingId"
+      },
+      "namedRegex": "^/account/listings/(?<nxtPlistingId>[^/]+?)/edit(?:/)?$"
+    },
+    {
+      "page": "/account/listings/[listingId]/preview",
+      "regex": "^/account/listings/([^/]+?)/preview(?:/)?$",
+      "routeKeys": {
+        "nxtPlistingId": "nxtPlistingId"
+      },
+      "namedRegex": "^/account/listings/(?<nxtPlistingId>[^/]+?)/preview(?:/)?$"
+    },
+    {
+      "page": "/dealer-account/import-requests/[id]",
+      "regex": "^/dealer\\-account/import\\-requests/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/dealer\\-account/import\\-requests/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/dealers/[id]",
       "regex": "^/dealers/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -60,6 +92,24 @@
       "regex": "^/account(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/account(?:/)?$"
+    },
+    {
+      "page": "/account/import-requests",
+      "regex": "^/account/import\\-requests(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/account/import\\-requests(?:/)?$"
+    },
+    {
+      "page": "/account/listings",
+      "regex": "^/account/listings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/account/listings(?:/)?$"
+    },
+    {
+      "page": "/account/listings/new",
+      "regex": "^/account/listings/new(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/account/listings/new(?:/)?$"
     },
     {
       "page": "/account/profile",
@@ -116,6 +166,12 @@
       "namedRegex": "^/dealer\\-account(?:/)?$"
     },
     {
+      "page": "/dealer-account/import-requests",
+      "regex": "^/dealer\\-account/import\\-requests(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dealer\\-account/import\\-requests(?:/)?$"
+    },
+    {
       "page": "/dealers",
       "regex": "^/dealers(?:/)?$",
       "routeKeys": {},
@@ -138,6 +194,12 @@
       "regex": "^/import(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/import(?:/)?$"
+    },
+    {
+      "page": "/sell",
+      "regex": "^/sell(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/sell(?:/)?$"
     },
     {
       "page": "/sitemap.xml",

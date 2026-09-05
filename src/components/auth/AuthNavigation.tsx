@@ -85,12 +85,30 @@ export function AuthNavigation({
           {t(auth.role === "dealer" ? "auth.dealerAccount" : "auth.account")}
         </Link>
         {auth.role === "user" && (
+          <>
+            <Link
+              href="/account/profile"
+              onClick={onNavigate}
+              className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
+            >
+              {t("auth.profile")}
+            </Link>
+            <Link
+              href="/account/import-requests"
+              onClick={onNavigate}
+              className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
+            >
+              {t("import.myRequests")}
+            </Link>
+          </>
+        )}
+        {auth.role === "dealer" && (
           <Link
-            href="/account/profile"
+            href="/dealer-account/import-requests"
             onClick={onNavigate}
             className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
           >
-            {t("auth.profile")}
+            {t("import.opportunities")}
           </Link>
         )}
         {auth.user?.dealerId && (
@@ -136,8 +154,18 @@ export function AuthNavigation({
           </Link>
         </DropdownMenuItem>
         {auth.role === "user" && (
+          <>
+            <DropdownMenuItem asChild>
+              <Link href="/account/profile">{t("auth.profile")}</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/account/import-requests">{t("import.myRequests")}</Link>
+            </DropdownMenuItem>
+          </>
+        )}
+        {auth.role === "dealer" && (
           <DropdownMenuItem asChild>
-            <Link href="/account/profile">{t("auth.profile")}</Link>
+            <Link href="/dealer-account/import-requests">{t("import.opportunities")}</Link>
           </DropdownMenuItem>
         )}
         {auth.user?.dealerId && (

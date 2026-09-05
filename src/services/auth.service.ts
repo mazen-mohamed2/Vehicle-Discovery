@@ -22,7 +22,8 @@ const SHORT_SESSION_MS = 8 * 36e5;
 const MAX_SESSION_MS = 8 * 864e5;
 const delay = () => new Promise((resolve) => setTimeout(resolve, 250));
 
-const fixtures = [
+/** Development-only identities used to exercise role and ownership behavior without a backend. */
+export const developmentAuthFixtures = [
   {
     password: "Customer#123",
     user: {
@@ -42,7 +43,30 @@ const fixtures = [
       displayName: "Cairo Auto",
       email: "dealer@sahladaraj.dev",
       phone: "+201009998877",
-      dealerId: "agency-1",
+      dealerId: "ag1",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    },
+  },
+  {
+    password: "Customer#234",
+    user: {
+      id: "user-qa-b",
+      role: "user",
+      displayName: "Omar Nabil",
+      email: "customer2@sahladaraj.dev",
+      phone: "+201011112244",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    },
+  },
+  {
+    password: "Dealer#2345",
+    user: {
+      id: "dealer-qa-b",
+      role: "dealer",
+      displayName: "Nile Auto Group",
+      email: "dealer2@sahladaraj.dev",
+      phone: "+201022223355",
+      dealerId: "ag2",
       createdAt: "2026-01-01T00:00:00.000Z",
     },
   },
@@ -206,7 +230,7 @@ export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResult> {
     await delay();
     const normalized = validateLogin(credentials);
-    const fixture = fixtures.find(
+    const fixture = developmentAuthFixtures.find(
       ({ user, password }) =>
         (user.email === normalized.identifier || user.phone === normalized.identifier) &&
         password === normalized.password,
@@ -235,7 +259,7 @@ export const authService = {
   },
   async loginWithGoogleMock(_providerCredential?: string) {
     await delay();
-    const result = persist(createSession(fixtures[0].user, "local", "google"));
+    const result = persist(createSession(developmentAuthFixtures[0].user, "local", "google"));
     notify();
     return result;
   },

@@ -197,3 +197,24 @@ export function safeReturnPath(value: string | null | undefined) {
     return null;
   }
 }
+
+export function roleAwareReturnPath(value: string | null | undefined, role: UserRole) {
+  const safe = safeReturnPath(value);
+  const fallback = role === "dealer" ? "/dealer-account" : "/account";
+  if (!safe) return fallback;
+  const pathname = new URL(safe, "https://local.invalid").pathname;
+  if (role === "dealer" && (pathname === "/account" || pathname.startsWith("/account/"))) {
+    return pathname.startsWith("/account/import-requests")
+      ? "/dealer-account/import-requests"
+      : fallback;
+  }
+  if (
+    role === "user" &&
+    (pathname === "/dealer-account" || pathname.startsWith("/dealer-account/"))
+  ) {
+    return pathname.startsWith("/dealer-account/import-requests")
+      ? "/account/import-requests"
+      : fallback;
+  }
+  return safe;
+}

@@ -33,4 +33,18 @@ export const queryKeys = {
     detail: (scope: import("@/lib/storage-scope").StorageScope, id: string) =>
       ["managed-listings", scope, "detail", id] as const,
   },
+  importWorkflow: {
+    all: ["import-workflow"] as const,
+    ownedRequests: (scope: import("@/lib/storage-scope").StorageScope) =>
+      ["import-workflow", scope, "owned-requests"] as const,
+    ownerDetail: (scope: import("@/lib/storage-scope").StorageScope, id: string) =>
+      ["import-workflow", scope, "owner-detail", id] as const,
+    openRequests: ["import-workflow", "dealer-marketplace", "open"] as const,
+    dealerDetail: (id: string) => ["import-workflow", "dealer-marketplace", id] as const,
+    offers: (requestId: string) => ["import-workflow", "offers", requestId] as const,
+    ownerOffers: (scope: import("@/lib/storage-scope").StorageScope) =>
+      ["import-workflow", scope, "owner-offers"] as const,
+    dealerOffers: (scope: import("@/lib/storage-scope").StorageScope) =>
+      ["import-workflow", scope, "dealer-offers"] as const,
+  },
 } as const;

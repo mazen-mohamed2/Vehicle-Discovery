@@ -12,11 +12,19 @@ During assisted implementation run `npm run typecheck`, `npm run lint`, and `npm
 
 ## Mock authentication (development only)
 
-Authentication is a frontend workflow mock, not a security boundary. The individual fixture is
-`customer@sahladaraj.dev` / `Customer#123`; the dealer fixture is
-`dealer@sahladaraj.dev` / `Dealer#1234`. These are development-only sample credentials, never
-production secrets. Google login is a simulated provider contract and uses no SDK, OAuth token,
-client ID, or secret.
+Authentication is a frontend workflow mock, not a security boundary. QA uses exactly four
+development-only identities, centralized in `auth.service.ts`:
+
+| Role | Email | Password | Canonical user ID | Dealer profile ID |
+| --- | --- | --- | --- | --- |
+| Individual A | `customer@sahladaraj.dev` | `Customer#123` | `user-demo` | — |
+| Individual B | `customer2@sahladaraj.dev` | `Customer#234` | `user-qa-b` | — |
+| Dealer A | `dealer@sahladaraj.dev` | `Dealer#1234` | `dealer-demo` | `ag1` |
+| Dealer B | `dealer2@sahladaraj.dev` | `Dealer#2345` | `dealer-qa-b` | `ag2` |
+
+These credentials are sample fixtures, never production secrets, and must be removed or replaced
+when real backend authentication is connected. Do not copy them into UI components. Google login
+is a simulated provider contract and uses no SDK, OAuth token, client ID, or secret.
 
 Only a sanitized `AuthSession` (safe user profile, provider, creation and expiry timestamps) is
 stored under `sd-auth-session`. Passwords, reset values, authorization codes, and provider tokens
@@ -50,7 +58,10 @@ prompt and synchronize account collections after server authentication.
 
 Login accepts normalized email or Egyptian phone formats. `returnTo` accepts only validated local
 application paths; external, protocol-relative, malformed, and login-loop destinations are
-rejected. Local registration creates a temporary sanitized session only—it is not a cloud account
+rejected. Once login resolves the role, incompatible `/account` and `/dealer-account` paths map to
+the equivalent import-request index when available, otherwise to that role's account home.
+`AuthBoundary` remains the fallback for manually entered unauthorized URLs. Local registration
+creates a temporary sanitized session only—it is not a cloud account
 and is not guaranteed to be reusable after logout; it never persists credentials. Forgot-password always returns the same response to prevent
 account enumeration. Reset tokens and Google login are flow-development fixtures only.
 
@@ -136,3 +147,36 @@ Seller declarations are collected only at publication and timestamped together. 
 9. Change accounts or log out from another tab while a private route is open; confirm access is removed and caches do not cross scopes.
 
 Known mock limitations: no actual upload, backend, moderation, KYC, document verification, payments, offers, or chat; temporary selected photos cannot survive restart; server-rendered SEO cannot observe browser-only published records until a backend exists.
+
+# Sprint 8: custom import workflow
+
+Custom Import uses one backend-replaceable repository for two deliberate data views: a shared marketplace of import requests/offers and identity-authorized owner/dealer selectors. Individual users create `OPEN` requests and can read only records whose `ownerUserId` matches their canonical session ID. Dealers can browse the minimal vehicle/budget fields of open requests and can mutate only offers whose `dealerUserId` matches their session. Frontend checks model product behavior but are not secure authorization; the backend must repeat every check.
+
+Request transitions are `OPEN -> OFFER_ACCEPTED` or `OPEN -> CANCELLED`. Cancellation is historical, not deletion. Offer transitions are `PENDING -> ACCEPTED`, `PENDING -> REJECTED`, or `PENDING -> WITHDRAWN`. Each dealer may have only one active pending offer per request. Accepting an offer synchronously sets the request to `OFFER_ACCEPTED`, accepts the selected offer, rejects every competing pending offer, removes the request from open opportunities, and rolls the request write back if offer persistence fails.
+
+The browser mock persists the shared marketplace in `sd-import-marketplace-requests` and `sd-import-marketplace-offers`. Private TanStack Query keys include `user:<id>` or `dealer:<id>` scopes; shared open-opportunity keys are explicit. Mutations invalidate the complete `import-workflow` family and storage events synchronize other tabs. Corrupt records and storage failures surface typed errors instead of being reported as successful empty states.
+
+Dealer names, rating, and verification are resolved from the existing canonical agency service and are not copied into offers. No requester contact details are stored or exposed. A backend migration replaces repository reads/writes with API calls while preserving domain types, query keys, and UI contracts. It must add database transactions, server-side ownership and dealer authorization, validation, rate limiting, audit logs, notifications, and durable persistence.
+
+The two dealer QA identities map one-to-one to canonical agency fixtures `ag1` and `ag2`. Offers
+persist both canonical `dealerUserId` (mutation ownership) and `dealerId` (profile lookup), while
+presentation fields continue to come from `agenciesService`. Agency lookups return a record or
+explicit `null`, never `undefined`, so they are safe React Query results. Dealer opportunities and
+direct dealer request reads expose only `OPEN` requests; cancelled and accepted requests remain
+available solely in the owning individual's history.
+
+### Future website/dashboard domain parity
+
+The future admin dashboard parity pass must consume the same canonical backend contracts and source
+of truth as the website. `ImportRequest` has only `OPEN`, `OFFER_ACCEPTED`, and `CANCELLED` states;
+`ImportOffer` has only `PENDING`, `ACCEPTED`, `REJECTED`, and `WITHDRAWN` states. Do not create
+dashboard-only lifecycle statuses.
+
+Dashboard operations must expose import requests, submitted dealer offers, the accepted dealer and
+offer, rejected competing offers, cancellation, canonical owner/dealer IDs, `createdAt` and
+`updatedAt`, and accepted/rejected/withdrawn lifecycle timestamps wherever the backend contract
+provides them. The backend phase must add durable audit/history records for every transition. The
+dealer-account website and operational dashboard must read and mutate this one shared domain rather
+than synchronizing separate models.
+
+Accepting an offer does not move money, create escrow, contact a gateway, arrange customs, or start logistics. Payment and tracking cards explicitly describe these stages as backend-dependent. Future releases require real payment/escrow, notification, customs, and shipment integrations; this sprint creates no fake balances, transaction IDs, delivery events, or tracking data.

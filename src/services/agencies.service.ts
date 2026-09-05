@@ -40,7 +40,8 @@ function similarTo(agencyId: string, limit: number): AgencyRecommendation[] {
 
 export const agenciesService = {
   list: (): Promise<Agency[]> => delay(mockAgencies),
-  byId: (id: string): Promise<Agency | undefined> => delay(mockAgencies.find((a) => a.id === id)),
+  byId: (id: string): Promise<Agency | null> =>
+    delay(mockAgencies.find((a) => a.id === id) ?? null),
   verified: (): Promise<Agency[]> => delay(mockAgencies.filter((a) => a.verified)),
   similar: (agencyId: string, limit = 3): Promise<AgencyRecommendation[]> =>
     delay(similarTo(agencyId, limit)),

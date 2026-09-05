@@ -25,6 +25,36 @@ test("all public route entry points exist", async () => {
   await Promise.all(routes.map(async (route) => assert.match(await read(route), /export default/)));
 });
 
+test("custom import routes, navigation, queries, and accessible controls are wired", async () => {
+  const routes = [
+    "src/app/(site)/account/import-requests/page.tsx",
+    "src/app/(site)/account/import-requests/[id]/page.tsx",
+    "src/app/(site)/dealer-account/import-requests/page.tsx",
+    "src/app/(site)/dealer-account/import-requests/[id]/page.tsx",
+  ];
+  await Promise.all(routes.map(async (route) => assert.match(await read(route), /export default/)));
+  const form = await read("src/app/(site)/import/import-client.tsx");
+  const detail = await read("src/components/import-workflow/ImportRequestDetail.tsx");
+  const list = await read("src/components/import-workflow/ImportRequestsList.tsx");
+  const hook = await read("src/hooks/use-import-workflow.ts");
+  const navigation = await read("src/components/auth/AuthNavigation.tsx");
+  assert.match(form, /auth\.requireAuth\("\/import"/);
+  assert.match(form, /aria-invalid/);
+  assert.match(detail, /<AlertDialog/);
+  assert.match(detail, /import\.accepted\.backendBoundary/);
+  assert.match(detail, /resolveImportDetailState/);
+  assert.match(detail, /import\.accessDenied/);
+  assert.match(detail, /import\.requestNotFound/);
+  assert.match(hook, /queryKeys\.importWorkflow\.ownedRequests\(scope\)/);
+  assert.match(hook, /queryKeys\.importWorkflow\.openRequests/);
+  assert.match(hook, /ownerDetail\.isSuccess && ownerOffers\.isPending/);
+  assert.match(hook, /invalidateQueries\(\{ queryKey: queryKeys\.importWorkflow\.all \}\)/);
+  assert.match(navigation, /\/account\/import-requests/);
+  assert.match(navigation, /\/dealer-account\/import-requests/);
+  assert.match(list, /DealerOfferHistory/);
+  assert.match(list, /dealerOfferHistory/);
+});
+
 test("dynamic routes resolve browser-created vehicles and reject invalid dealers", async () => {
   assert.match(
     await read("src/app/(site)/vehicles/[id]/page.tsx"),
@@ -698,7 +728,7 @@ test("auth credentials normalize safely and return paths reject redirects and lo
   assert.match(auth, /url\.origin !== "https:\/\/local\.invalid"/);
   assert.match(auth, /url\.pathname\.startsWith\("\/auth\/"\)/);
   assert.match(service, /INVALID_CREDENTIALS/);
-  assert.match(login, /safeReturnPath\(params\.get\("returnTo"\)\)/);
+  assert.match(login, /roleAwareReturnPath\(params\.get\("returnTo"\), result\.user\.role\)/);
   assert.match(login, /if \(auth\.isPending\) return/);
 });
 

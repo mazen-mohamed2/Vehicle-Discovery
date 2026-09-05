@@ -45,6 +45,60 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   type __Unused = __Check
 }
 
+// Validate ../../src/app/(site)/account/import-requests/[id]/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/account/import-requests/[id]">> = Specific
+  const handler = {} as typeof import("../../src/app/(site)/account/import-requests/[id]/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/(site)/account/import-requests/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/account/import-requests">> = Specific
+  const handler = {} as typeof import("../../src/app/(site)/account/import-requests/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/(site)/account/listings/[listingId]/edit/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/account/listings/[listingId]/edit">> = Specific
+  const handler = {} as typeof import("../../src/app/(site)/account/listings/[listingId]/edit/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/(site)/account/listings/[listingId]/preview/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/account/listings/[listingId]/preview">> = Specific
+  const handler = {} as typeof import("../../src/app/(site)/account/listings/[listingId]/preview/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/(site)/account/listings/new/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/account/listings/new">> = Specific
+  const handler = {} as typeof import("../../src/app/(site)/account/listings/new/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/(site)/account/listings/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/account/listings">> = Specific
+  const handler = {} as typeof import("../../src/app/(site)/account/listings/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/(site)/account/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/account">> = Specific
@@ -85,6 +139,24 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
 {
   type __IsExpected<Specific extends AppPageConfig<"/contact">> = Specific
   const handler = {} as typeof import("../../src/app/(site)/contact/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/(site)/dealer-account/import-requests/[id]/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dealer-account/import-requests/[id]">> = Specific
+  const handler = {} as typeof import("../../src/app/(site)/dealer-account/import-requests/[id]/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/(site)/dealer-account/import-requests/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dealer-account/import-requests">> = Specific
+  const handler = {} as typeof import("../../src/app/(site)/dealer-account/import-requests/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
@@ -148,6 +220,15 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
 {
   type __IsExpected<Specific extends AppPageConfig<"/">> = Specific
   const handler = {} as typeof import("../../src/app/(site)/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/(site)/sell/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/sell">> = Specific
+  const handler = {} as typeof import("../../src/app/(site)/sell/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

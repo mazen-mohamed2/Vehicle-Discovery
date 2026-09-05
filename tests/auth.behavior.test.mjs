@@ -186,6 +186,23 @@ test("safe return paths reject external, encoded, malformed, backslash, and auth
   ])
     assert.equal(safeReturnPath(value), null, value);
 });
+test("return paths are safe and role-aware after authentication", () => {
+  const { roleAwareReturnPath } = loadTypeScript("src/lib/auth.ts");
+  assert.equal(
+    roleAwareReturnPath("/account/import-requests/request-1", "dealer"),
+    "/dealer-account/import-requests",
+  );
+  assert.equal(
+    roleAwareReturnPath("/dealer-account/import-requests/request-1", "user"),
+    "/account/import-requests",
+  );
+  assert.equal(
+    roleAwareReturnPath("/account/import-requests?status=OPEN", "user"),
+    "/account/import-requests?status=OPEN",
+  );
+  assert.equal(roleAwareReturnPath("https://evil.test", "dealer"), "/dealer-account");
+  assert.equal(roleAwareReturnPath("//evil.test", "user"), "/account");
+});
 test("remember true uses localStorage and remember false uses sessionStorage", async () => {
   const stores = browser();
   clearTypeScriptModules();
@@ -249,6 +266,27 @@ test("individual and dealer login return canonical roles", async () => {
     ).user.role,
     "dealer",
   );
+});
+test("four development QA fixtures have distinct canonical identities and dealer mappings", async () => {
+  browser();
+  clearTypeScriptModules();
+  const { authService, developmentAuthFixtures } = loadTypeScript("src/services/auth.service.ts");
+  assert.equal(developmentAuthFixtures.length, 4);
+  assert.equal(new Set(developmentAuthFixtures.map(({ user }) => user.id)).size, 4);
+  const dealers = developmentAuthFixtures.filter(({ user }) => user.role === "dealer");
+  assert.deepEqual(
+    dealers.map(({ user }) => user.dealerId),
+    ["ag1", "ag2"],
+  );
+  assert.equal(new Set(dealers.map(({ user }) => user.dealerId)).size, 2);
+  for (const fixture of developmentAuthFixtures) {
+    const result = await authService.login({
+      identifier: fixture.user.email,
+      password: fixture.password,
+      remember: false,
+    });
+    assert.equal(result.user.id, fixture.user.id);
+  }
 });
 test("invalid credentials and malformed login are rejected", async () => {
   browser();
