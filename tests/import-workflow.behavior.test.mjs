@@ -30,6 +30,7 @@ function environment() {
     localStorage,
     ...loadTypeScript("src/services/import-requests.service.ts"),
     ...loadTypeScript("src/lib/import-workflow.ts"),
+    ...loadTypeScript("src/services/notifications.service.ts"),
   };
 }
 const authFixtures = loadTypeScript("src/services/auth.service.ts").developmentAuthFixtures;
@@ -137,7 +138,8 @@ test("unauthorized and missing owner details resolve to terminal non-loading sta
   assert.throws(() => state.importRequestsService.ownerRequest(userB, request.id));
 });
 test("dealers see open opportunities and submit isolated offers", () => {
-  const { importRequestsService: service } = environment();
+  const state = environment();
+  const service = state.importRequestsService;
   const request = service.createRequest(userA, requestInput);
   assert.equal(service.openRequests(dealerA)[0].id, request.id);
   const offer = service.submitOffer(dealerA, request.id, offerInput);
@@ -146,6 +148,7 @@ test("dealers see open opportunities and submit isolated offers", () => {
   assert.equal(service.dealerOfferHistory(dealerA)[0].offer.status, "PENDING");
   assert.deepEqual(service.dealerOfferHistory(dealerB), []);
   assert.equal(service.offersForOwner(userA, request.id)[0].dealerId, "ag1");
+  assert.equal(state.notificationsService.list(userA)[0].type, "NEW_IMPORT_OFFER");
 });
 test("duplicate active dealer offers are rejected", () => {
   const { importRequestsService: service } = environment();
@@ -182,7 +185,8 @@ test("two canonical dealers cannot mutate each other's offers", () => {
   );
 });
 test("owner rejects a pending offer and dealer cannot reject it", () => {
-  const { importRequestsService: service } = environment();
+  const state = environment();
+  const service = state.importRequestsService;
   const request = service.createRequest(userA, requestInput);
   const offer = service.submitOffer(dealerA, request.id, offerInput);
   assert.throws(
@@ -191,9 +195,11 @@ test("owner rejects a pending offer and dealer cannot reject it", () => {
   );
   assert.equal(service.rejectOffer(userA, request.id, offer.id).status, "REJECTED");
   assert.equal(service.dealerOfferHistory(dealerA)[0].offer.status, "REJECTED");
+  assert.equal(state.notificationsService.list(dealerA)[0].type, "IMPORT_OFFER_REJECTED");
 });
 test("accepting one offer atomically accepts it and rejects competitors", () => {
-  const { importRequestsService: service } = environment();
+  const state = environment();
+  const service = state.importRequestsService;
   const request = service.createRequest(userA, requestInput);
   const first = service.submitOffer(dealerA, request.id, offerInput);
   const second = service.submitOffer(dealerB, request.id, { ...offerInput, price: 2300000 });
@@ -204,6 +210,8 @@ test("accepting one offer atomically accepts it and rejects competitors", () => 
   assert.equal(result.offers.find((item) => item.id === first.id).status, "REJECTED");
   assert.equal(service.dealerOfferHistory(dealerA)[0].offer.status, "REJECTED");
   assert.equal(service.dealerOfferHistory(dealerB)[0].offer.status, "ACCEPTED");
+  assert.equal(state.notificationsService.list(dealerA)[0].type, "IMPORT_OFFER_REJECTED");
+  assert.equal(state.notificationsService.list(dealerB)[0].type, "IMPORT_OFFER_ACCEPTED");
   assert.deepEqual(service.openRequests(dealerA), []);
   assert.deepEqual(service.openRequests(dealerB), []);
   assert.throws(

@@ -72,6 +72,13 @@ export const developmentAuthFixtures = [
   },
 ] satisfies Array<{ password: string; user: AuthUser }>;
 
+export function developmentPublicProfile(userId: string) {
+  const user = developmentAuthFixtures.find((fixture) => fixture.user.id === userId)?.user;
+  return user
+    ? { id: user.id, displayName: user.displayName, role: user.role, dealerId: user.dealerId }
+    : null;
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const finiteDate = (value: unknown) => (typeof value === "string" ? Date.parse(value) : Number.NaN);

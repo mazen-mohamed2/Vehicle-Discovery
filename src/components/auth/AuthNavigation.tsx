@@ -84,6 +84,29 @@ export function AuthNavigation({
         >
           {t(auth.role === "dealer" ? "auth.dealerAccount" : "auth.account")}
         </Link>
+        <Link
+          href="/messages"
+          onClick={onNavigate}
+          className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
+        >
+          {t("messages.title")}
+        </Link>
+        <Link
+          href={auth.role === "dealer" ? "/dealer-account/offers" : "/account/offers"}
+          onClick={onNavigate}
+          className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
+        >
+          {t("vehicleOffers.mine")}
+        </Link>
+        <Link
+          href={
+            auth.role === "dealer" ? "/dealer-account/received-offers" : "/account/received-offers"
+          }
+          onClick={onNavigate}
+          className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
+        >
+          {t("vehicleOffers.received")}
+        </Link>
         {auth.role === "user" && (
           <>
             <Link
@@ -151,6 +174,25 @@ export function AuthNavigation({
         <DropdownMenuItem asChild>
           <Link href={accountHref}>
             {t(auth.role === "dealer" ? "auth.dealerAccount" : "auth.account")}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/messages">{t("messages.title")}</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={auth.role === "dealer" ? "/dealer-account/offers" : "/account/offers"}>
+            {t("vehicleOffers.mine")}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link
+            href={
+              auth.role === "dealer"
+                ? "/dealer-account/received-offers"
+                : "/account/received-offers"
+            }
+          >
+            {t("vehicleOffers.received")}
           </Link>
         </DropdownMenuItem>
         {auth.role === "user" && (

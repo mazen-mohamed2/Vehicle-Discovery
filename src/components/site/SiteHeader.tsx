@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, Menu, Moon, Scale, Sun, Globe, X } from "lucide-react";
+import { Bell, Heart, Menu, Moon, Scale, Sun, Globe, X } from "lucide-react";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { formatNumber } from "@/lib/locale";
 import { AuthNavigation } from "@/components/auth/AuthNavigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useNotifications } from "@/hooks/use-notifications";
 
 export function SiteHeader() {
   const { t, locale, setLocale, theme, setTheme } = useI18n();
@@ -21,6 +22,10 @@ export function SiteHeader() {
   const { favorites, isHydrating: favoritesHydrating } = useFavorites();
   const favoritesCount = favorites.length;
   const auth = useAuth();
+  const notifications = useNotifications();
+  const notificationLabel = notifications.isHydrating
+    ? t("notifications.title")
+    : t("notifications.count").replace("{count}", formatNumber(notifications.unreadCount, locale));
   const favoritesLabel = favoritesHydrating
     ? t("nav.favorites")
     : t("nav.favoritesWithCount").replace("{count}", formatNumber(favoritesCount, locale));
@@ -106,6 +111,22 @@ export function SiteHeader() {
               <span>({formatNumber(compareCount, locale)})</span>
             )}
           </Link>
+          {!auth.isGuest && (
+            <Link
+              href="/notifications"
+              aria-label={notificationLabel}
+              aria-current={pathname === "/notifications" ? "page" : undefined}
+              className={cn(
+                "hidden h-9 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:inline-flex",
+                pathname === "/notifications" && "bg-secondary text-foreground",
+              )}
+            >
+              <Bell className="h-4 w-4" />
+              {!notifications.isHydrating && notifications.unreadCount > 0 && (
+                <span>({formatNumber(notifications.unreadCount, locale)})</span>
+              )}
+            </Link>
+          )}
           <AuthNavigation />
           <Button
             type="button"
@@ -171,6 +192,21 @@ export function SiteHeader() {
                 <span>({formatNumber(compareCount, locale)})</span>
               )}
             </Link>
+            {!auth.isGuest && (
+              <Link
+                href="/notifications"
+                aria-label={notificationLabel}
+                aria-current={pathname === "/notifications" ? "page" : undefined}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Bell className="h-4 w-4" />
+                <span>{t("notifications.title")}</span>
+                {!notifications.isHydrating && (
+                  <span>({formatNumber(notifications.unreadCount, locale)})</span>
+                )}
+              </Link>
+            )}
             <AuthNavigation mobile onNavigate={() => setOpen(false)} />
             <Button
               size="sm"

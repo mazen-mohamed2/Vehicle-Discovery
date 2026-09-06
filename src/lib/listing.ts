@@ -126,6 +126,7 @@ export function toPublicVehicle(listing: ManagedListing): VehicleListing {
     transmission: listing.transmission || "automatic",
     sellerType: listing.sellerRole === "dealer" ? "agency" : "individual",
     sellerId: listing.dealerId ?? listing.sellerId,
+    sellerUserId: listing.sellerId,
     sellerName: listing.sellerName,
     verified: false,
     featured: false,

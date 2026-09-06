@@ -47,4 +47,26 @@ export const queryKeys = {
     dealerOffers: (scope: import("@/lib/storage-scope").StorageScope) =>
       ["import-workflow", scope, "dealer-offers"] as const,
   },
+  communication: {
+    all: ["communication"] as const,
+    conversations: (scope: import("@/lib/storage-scope").StorageScope) =>
+      ["communication", scope, "conversations"] as const,
+    conversation: (scope: import("@/lib/storage-scope").StorageScope, id: string) =>
+      ["communication", scope, "conversation", id] as const,
+    messages: (scope: import("@/lib/storage-scope").StorageScope, id: string) =>
+      ["communication", scope, "messages", id] as const,
+    buyerOffers: (scope: import("@/lib/storage-scope").StorageScope) =>
+      ["communication", scope, "buyer-offers"] as const,
+    receivedOffers: (scope: import("@/lib/storage-scope").StorageScope) =>
+      ["communication", scope, "received-offers"] as const,
+    listingOffers: (scope: import("@/lib/storage-scope").StorageScope, listingId: string) =>
+      ["communication", scope, "listing-offers", listingId] as const,
+  },
+  notifications: {
+    all: ["notifications"] as const,
+    list: (scope: import("@/lib/storage-scope").StorageScope) =>
+      ["notifications", scope, "list"] as const,
+    unread: (scope: import("@/lib/storage-scope").StorageScope) =>
+      ["notifications", scope, "unread"] as const,
+  },
 } as const;

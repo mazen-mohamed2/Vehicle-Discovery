@@ -25,6 +25,42 @@ test("all public route entry points exist", async () => {
   await Promise.all(routes.map(async (route) => assert.match(await read(route), /export default/)));
 });
 
+test("marketplace communication routes, scoped queries, navigation, and vehicle actions are wired", async () => {
+  const routes = [
+    "src/app/(site)/messages/page.tsx",
+    "src/app/(site)/messages/[conversationId]/page.tsx",
+    "src/app/(site)/notifications/page.tsx",
+    "src/app/(site)/account/offers/page.tsx",
+    "src/app/(site)/account/received-offers/page.tsx",
+    "src/app/(site)/dealer-account/offers/page.tsx",
+    "src/app/(site)/dealer-account/received-offers/page.tsx",
+  ];
+  await Promise.all(routes.map(async (route) => assert.match(await read(route), /export default/)));
+  const keys = await read("src/lib/query-keys.ts");
+  const hook = await read("src/hooks/use-marketplace-communication.ts");
+  const notifications = await read("src/hooks/use-notifications.ts");
+  const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
+  const nav = await read("src/components/auth/AuthNavigation.tsx");
+  const header = await read("src/components/site/SiteHeader.tsx");
+  for (const token of [
+    "conversations",
+    "conversation",
+    "messages",
+    "buyerOffers",
+    "receivedOffers",
+    "listingOffers",
+  ])
+    assert.match(keys, new RegExp(token));
+  assert.match(hook, /authStorageScope\(auth\.user\)/);
+  assert.match(notifications, /queryKeys\.notifications\.list\(scope\)/);
+  assert.match(detail, /auth\.requireAuth\(returnPath/);
+  assert.match(detail, /startConversation/);
+  assert.match(detail, /createOffer/);
+  assert.match(nav, /\/messages/);
+  assert.match(nav, /received-offers/);
+  assert.match(header, /\/notifications/);
+});
+
 test("custom import routes, navigation, queries, and accessible controls are wired", async () => {
   const routes = [
     "src/app/(site)/account/import-requests/page.tsx",

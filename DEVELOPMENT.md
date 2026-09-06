@@ -15,12 +15,12 @@ During assisted implementation run `npm run typecheck`, `npm run lint`, and `npm
 Authentication is a frontend workflow mock, not a security boundary. QA uses exactly four
 development-only identities, centralized in `auth.service.ts`:
 
-| Role | Email | Password | Canonical user ID | Dealer profile ID |
-| --- | --- | --- | --- | --- |
-| Individual A | `customer@sahladaraj.dev` | `Customer#123` | `user-demo` | — |
-| Individual B | `customer2@sahladaraj.dev` | `Customer#234` | `user-qa-b` | — |
-| Dealer A | `dealer@sahladaraj.dev` | `Dealer#1234` | `dealer-demo` | `ag1` |
-| Dealer B | `dealer2@sahladaraj.dev` | `Dealer#2345` | `dealer-qa-b` | `ag2` |
+| Role         | Email                      | Password       | Canonical user ID | Dealer profile ID |
+| ------------ | -------------------------- | -------------- | ----------------- | ----------------- |
+| Individual A | `customer@sahladaraj.dev`  | `Customer#123` | `user-demo`       | —                 |
+| Individual B | `customer2@sahladaraj.dev` | `Customer#234` | `user-qa-b`       | —                 |
+| Dealer A     | `dealer@sahladaraj.dev`    | `Dealer#1234`  | `dealer-demo`     | `ag1`             |
+| Dealer B     | `dealer2@sahladaraj.dev`   | `Dealer#2345`  | `dealer-qa-b`     | `ag2`             |
 
 These credentials are sample fixtures, never production secrets, and must be removed or replaced
 when real backend authentication is connected. Do not copy them into UI components. Google login
@@ -180,3 +180,48 @@ dealer-account website and operational dashboard must read and mutate this one s
 than synchronizing separate models.
 
 Accepting an offer does not move money, create escrow, contact a gateway, arrange customs, or start logistics. Payment and tracking cards explicitly describe these stages as backend-dependent. Future releases require real payment/escrow, notification, customs, and shipment integrations; this sprint creates no fake balances, transaction IDs, delivery events, or tracking data.
+
+# Sprint 9: marketplace communication, vehicle offers, and notifications
+
+The Website now has separate canonical `ConversationRecord`, `MessageRecord`,
+`VehicleOfferRecord`, and `WebsiteNotificationRecord` contracts. Vehicle offers remain entirely
+separate from Sprint 8 `ImportOfferRecord`. Conversations store participant, buyer, seller, and
+listing IDs only; messages store their conversation/sender IDs, body, creation time, and a simple
+participant read list. One conversation is reused for each listing + buyer + seller tuple.
+
+Public listings carry an explicit canonical `sellerUserId` in addition to the dealer-facing
+`sellerId` when relevant. Only published records available through the public catalog can start a
+new conversation or vehicle offer. Self-contact and self-offers are rejected. Existing history is
+retained if a listing later becomes sold or archived, while its removal from the active catalog
+blocks new activity.
+
+`VehicleOfferRecord` uses `PENDING`, `ACCEPTED`, `REJECTED`, and `WITHDRAWN`. A buyer may have one
+pending offer per listing. The listing owner alone accepts or rejects it; the buyer alone withdraws
+it. Acceptance writes one accepted offer and rejects every competing pending offer in the same
+repository transition, then blocks new offers. It does not mark the listing sold, transfer a
+vehicle, or imply payment. The listing lifecycle remains independent for the later transaction
+sprint.
+
+Website notifications are recipient-filtered records with safe internal deep links and read state.
+New messages notify the other participant; new vehicle offers notify the seller; acceptance and
+rejection notify affected buyers; withdrawal may notify the seller. Import-offer submission,
+acceptance, and rejection emit `NEW_IMPORT_OFFER`, `IMPORT_OFFER_ACCEPTED`, and
+`IMPORT_OFFER_REJECTED` without changing the Import domain. Opening a notification marks it read,
+and the shared navigation count uses the account-scoped TanStack Query state.
+
+The frontend mock stores conversations, messages, vehicle offers, and notifications in deliberate
+shared browser repositories, then exposes only participant, buyer, seller, or recipient-authorized
+selectors. Query keys include the canonical account scope, mutations invalidate their complete
+domain families, and browser storage events refresh other tabs. This models product behavior but is
+not a security boundary or real-time delivery.
+
+A backend replacement must enforce conversation membership, listing ownership, offer ownership,
+and recipient access server-side; accept offers in a database transaction; generate notifications
+server-side; and add persistent storage, rate limits, spam/abuse controls, moderation, audit logs,
+and WebSocket/realtime delivery where justified. Do not add fake JWTs, encryption, delivery
+receipts, email/SMS/push, payment, or escrow claims.
+
+The Website owns participant-facing messages, offers, outcomes, and notifications. A future
+Dashboard may add operational visibility, moderation, abuse investigation, and audit history, but
+must consume the same backend contracts and lifecycle states without dashboard-only business
+statuses.

@@ -6,6 +6,7 @@ import {
   type ImportOfferRecord,
   type ImportRequestRecord,
 } from "@/lib/import-workflow";
+import { notificationsService } from "@/services/notifications.service";
 
 const REQUESTS_KEY = "sd-import-marketplace-requests";
 const OFFERS_KEY = "sd-import-marketplace-offers";
@@ -208,6 +209,12 @@ export const importRequestsService = {
       updatedAt: now,
     };
     write(OFFERS_KEY, [...offers(), offer]);
+    notificationsService.create(
+      request.ownerUserId,
+      "NEW_IMPORT_OFFER",
+      requestId,
+      `/account/import-requests/${requestId}`,
+    );
     return offer;
   },
   rejectOffer(actor: ImportActor, requestId: string, offerId: string) {
@@ -219,6 +226,12 @@ export const importRequestsService = {
     write(
       OFFERS_KEY,
       offers().map((item) => (item.id === offerId ? updated : item)),
+    );
+    notificationsService.create(
+      offer.dealerUserId,
+      "IMPORT_OFFER_REJECTED",
+      offer.id,
+      "/dealer-account/import-requests",
     );
     return updated;
   },
@@ -268,6 +281,20 @@ export const importRequestsService = {
       write(REQUESTS_KEY, before);
       throw error;
     }
+    nextOffers
+      .filter(
+        (offer) =>
+          offer.requestId === requestId &&
+          (offer.status === "ACCEPTED" || (offer.status === "REJECTED" && offer.updatedAt === now)),
+      )
+      .forEach((offer) =>
+        notificationsService.create(
+          offer.dealerUserId,
+          offer.status === "ACCEPTED" ? "IMPORT_OFFER_ACCEPTED" : "IMPORT_OFFER_REJECTED",
+          offer.id,
+          "/dealer-account/import-requests",
+        ),
+      );
     return {
       request: nextRequest,
       offers: nextOffers.filter((item) => item.requestId === requestId),

@@ -11,7 +11,8 @@ import {
   Flag,
   Heart,
   MapPin,
-  Phone,
+  MessageSquare,
+  HandCoins,
   Scale,
   Share2,
   ShieldCheck,
@@ -21,6 +22,8 @@ import {
 } from "lucide-react";
 import type { Agency, VehicleListing } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useI18n } from "@/lib/i18n";
@@ -41,6 +44,9 @@ import { VehicleGallery } from "./vehicle-gallery";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useCompare } from "@/hooks/use-compare";
 import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
+import { useMarketplaceCommunication } from "@/hooks/use-marketplace-communication";
+import { CommunicationError } from "@/lib/communication";
 
 export function VehicleDetailClient({
   vehicle: v,
@@ -54,12 +60,19 @@ export function VehicleDetailClient({
   const { t, locale } = useI18n();
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
+  const [offerOpen, setOfferOpen] = useState(false);
   const { isFavorite, toggleFavorite, isHydrating, togglingListingId } = useFavorites();
   const saved = isFavorite(v.id);
   const { isCompared, toggleCompare, isHydrating: compareHydrating } = useCompare();
   const compared = isCompared(v.id);
   const auth = useAuth();
+  const router = useRouter();
+  const communication = useMarketplaceCommunication();
   const returnPath = `/vehicles/${v.id}`;
+  const ownListing = Boolean(auth.user && v.sellerUserId === auth.user.id);
+  const existingOffer = communication.buyerOffers.find(
+    (offer) => offer.listingId === v.id && offer.status === "PENDING",
+  );
 
   const overview = [
     [t("form.year"), formatYear(v.year, locale)],
@@ -142,11 +155,34 @@ export function VehicleDetailClient({
               <Button
                 size="lg"
                 className="col-span-2 gradient-primary text-primary-foreground shadow-elegant"
+                disabled={ownListing || communication.isPending}
                 onClick={() =>
-                  auth.requireAuth(returnPath, () => toast.info(t("auth.action.soon")))
+                  auth.requireAuth(returnPath, async () => {
+                    try {
+                      const conversation = await communication.startConversation(v.id);
+                      router.push(`/messages/${conversation.id}`);
+                    } catch (error) {
+                      toast.error(
+                        t(
+                          error instanceof CommunicationError && error.code === "SELF_INTERACTION"
+                            ? "communication.self"
+                            : "communication.error",
+                        ),
+                      );
+                    }
+                  })
                 }
               >
-                <Phone className="me-2 h-4 w-4" /> {t("vehicle.contactSeller")}
+                <MessageSquare className="me-2 h-4 w-4" /> {t("vehicle.contactSeller")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="col-span-2"
+                disabled={ownListing}
+                onClick={() => auth.requireAuth(returnPath, () => setOfferOpen(true))}
+              >
+                <HandCoins className="me-2 h-4 w-4" /> {t("vehicleOffers.make")}
               </Button>
               {isHydrating ? (
                 <Skeleton role="status" aria-label={t("a11y.loading")} className="h-10 w-full" />
@@ -247,7 +283,130 @@ export function VehicleDetailClient({
           });
         }}
       />
+      <VehicleOfferDialog
+        open={offerOpen}
+        onOpenChange={setOfferOpen}
+        listingId={v.id}
+        currency={v.currency}
+        existingOfferId={existingOffer?.id}
+        onCreate={communication.createOffer}
+        onWithdraw={(id) => communication.runOfferAction({ action: "withdraw", id })}
+        pending={communication.isPending}
+      />
     </main>
+  );
+}
+
+function VehicleOfferDialog({
+  open,
+  onOpenChange,
+  listingId,
+  currency,
+  existingOfferId,
+  onCreate,
+  onWithdraw,
+  pending,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  listingId: string;
+  currency: "EGP" | "USD";
+  existingOfferId?: string;
+  onCreate: (input: {
+    listingId: string;
+    amount: number;
+    currency: "EGP" | "USD";
+    note?: string;
+  }) => Promise<unknown>;
+  onWithdraw: (id: string) => Promise<unknown>;
+  pending: boolean;
+}) {
+  const { t } = useI18n();
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
+  const submit = async () => {
+    setError("");
+    try {
+      await onCreate({ listingId, amount: Number(amount), currency, note });
+      onOpenChange(false);
+      setAmount("");
+      setNote("");
+      toast.success(t("vehicleOffers.created"));
+    } catch (caught) {
+      setError(
+        t(
+          caught instanceof CommunicationError && caught.code === "DUPLICATE_ACTIVE_OFFER"
+            ? "vehicleOffers.duplicate"
+            : "vehicleOffers.invalid",
+        ),
+      );
+    }
+  };
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t("vehicleOffers.make")}</DialogTitle>
+          <DialogDescription>{t("vehicleOffers.makeDescription")}</DialogDescription>
+        </DialogHeader>
+        {existingOfferId ? (
+          <div>
+            <p>{t("vehicleOffers.existing")}</p>
+            <Button
+              className="mt-4"
+              variant="outline"
+              disabled={pending}
+              onClick={async () => {
+                await onWithdraw(existingOfferId);
+                onOpenChange(false);
+              }}
+            >
+              {t("vehicleOffers.withdraw")}
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            <label htmlFor="vehicle-offer-amount" className="font-bold">
+              {t("vehicleOffers.amount")}
+              <Input
+                id="vehicle-offer-amount"
+                type="number"
+                min="1"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? "vehicle-offer-error" : undefined}
+              />
+            </label>
+            <p className="text-sm text-muted-foreground">
+              {t("vehicleOffers.currency")}: {currency}
+            </p>
+            <label htmlFor="vehicle-offer-note" className="font-bold">
+              {t("vehicleOffers.note")}
+              <Textarea
+                id="vehicle-offer-note"
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+              />
+            </label>
+            {error && (
+              <p id="vehicle-offer-error" role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                {t("common.close")}
+              </Button>
+              <Button disabled={pending} onClick={() => void submit()}>
+                {pending ? t("vehicleOffers.submitting") : t("vehicleOffers.submit")}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

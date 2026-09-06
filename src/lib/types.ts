@@ -88,6 +88,8 @@ export interface VehicleListing {
   transmission: Transmission;
   sellerType: SellerType;
   sellerId: string;
+  /** Canonical account identity used for participant authorization. */
+  sellerUserId?: string;
   sellerName: string;
   verified: boolean;
   featured: boolean;
