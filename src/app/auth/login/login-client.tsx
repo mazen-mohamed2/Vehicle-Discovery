@@ -9,7 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { AuthServiceError, roleAwareReturnPath, validateLogin, type AuthField } from "@/lib/auth";
+import { AuthServiceError, validateLogin, type AuthField } from "@/lib/auth";
+import { resolveAuthenticatedReturnPath } from "@/services/return-path.service";
 import { useI18n } from "@/lib/i18n";
 
 export function LoginClient() {
@@ -54,7 +55,7 @@ export function LoginClient() {
     }
     try {
       const result = await auth.login(credentials);
-      router.replace(roleAwareReturnPath(params.get("returnTo"), result.user.role));
+      router.replace(resolveAuthenticatedReturnPath(params.get("returnTo"), result.user));
     } catch (caught) {
       setError(
         caught instanceof AuthServiceError && caught.code === "STORAGE_ERROR"
@@ -139,7 +140,7 @@ export function LoginClient() {
           onClick={async () => {
             try {
               const result = await auth.loginWithGoogleMock();
-              router.replace(roleAwareReturnPath(params.get("returnTo"), result.user.role));
+              router.replace(resolveAuthenticatedReturnPath(params.get("returnTo"), result.user));
             } catch {
               setError(t("auth.error.invalidCredentials"));
             }

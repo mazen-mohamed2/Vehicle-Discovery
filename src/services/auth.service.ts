@@ -73,9 +73,17 @@ export const developmentAuthFixtures = [
 ] satisfies Array<{ password: string; user: AuthUser }>;
 
 export function developmentPublicProfile(userId: string) {
-  const user = developmentAuthFixtures.find((fixture) => fixture.user.id === userId)?.user;
+  const user: AuthUser | undefined = developmentAuthFixtures.find(
+    (fixture) => fixture.user.id === userId,
+  )?.user;
   return user
-    ? { id: user.id, displayName: user.displayName, role: user.role, dealerId: user.dealerId }
+    ? {
+        id: user.id,
+        displayName: user.displayName,
+        role: user.role,
+        dealerId: user.dealerId,
+        avatarUrl: user.avatarUrl,
+      }
     : null;
 }
 

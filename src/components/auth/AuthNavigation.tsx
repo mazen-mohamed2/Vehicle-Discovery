@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { LogOut, UserRound } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,6 +17,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { isAuthenticationDependentPath } from "@/lib/auth";
 
 export function AuthNavigation({
   mobile = false,
@@ -27,10 +29,12 @@ export function AuthNavigation({
   const auth = useAuth();
   const { t } = useI18n();
   const pathname = usePathname();
+  const router = useRouter();
   const logout = async () => {
     try {
       await auth.logout();
       onNavigate?.();
+      if (isAuthenticationDependentPath(pathname)) router.replace("/");
     } catch {
       toast.error(t("auth.error.logoutFailed"));
     }

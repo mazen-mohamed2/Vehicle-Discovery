@@ -162,13 +162,63 @@ test("message read state and recipient notification update coherently", () => {
     true,
   );
   const notification = s.notifications.list(s.dealerA)[0];
-  s.notifications.markRead(s.dealerA, notification.id);
+  assert.ok(notification.readAt);
   assert.equal(s.notifications.unreadCount(s.dealerA), 0);
   assert.throws(
     () => s.notifications.markRead(s.dealerB, notification.id),
     (error) => error.code === "FORBIDDEN",
   );
   assert.match(notification.href, /^\/(?!\/)/);
+});
+
+test("opening one conversation reads only its received messages and matching notification", () => {
+  const s = setup();
+  const conversationA = s.service.startConversation(s.userA, "v1");
+  const conversationB = s.service.startConversation(s.userB, "v7");
+  s.service.sendMessage(s.userA, conversationA.id, "Conversation A");
+  s.service.sendMessage(s.userB, conversationB.id, "Conversation B");
+  assert.equal(s.notifications.unreadCount(s.dealerA), 2);
+
+  s.service.markConversationRead(s.dealerA, conversationA.id);
+
+  const notifications = s.notifications.list(s.dealerA);
+  assert.ok(notifications.find((item) => item.relatedId === conversationA.id).readAt);
+  assert.equal(notifications.find((item) => item.relatedId === conversationB.id).readAt, undefined);
+  assert.equal(s.notifications.unreadCount(s.dealerA), 1);
+  assert.equal(
+    s.service.messages(s.dealerA, conversationB.id)[0].readByUserIds.includes(s.dealerA.id),
+    false,
+  );
+  assert.equal(s.notifications.list(s.userA).length, 0);
+});
+
+test("public counterpart profiles expose canonical safe identity only", () => {
+  setup();
+  const { developmentPublicProfile } = loadTypeScript("src/services/auth.service.ts");
+  const dealer = developmentPublicProfile("dealer-demo");
+  const individual = developmentPublicProfile("user-demo");
+  assert.equal(dealer.displayName, "Cairo Auto");
+  assert.equal(dealer.role, "dealer");
+  assert.equal(dealer.dealerId, "ag1");
+  assert.equal(individual.role, "user");
+  for (const profile of [dealer, individual]) {
+    assert.equal("email" in profile, false);
+    assert.equal("phone" in profile, false);
+    assert.equal("password" in profile, false);
+  }
+});
+
+test("post-login entity return paths require the newly authenticated identity", () => {
+  const s = setup();
+  const conversation = s.service.startConversation(s.userA, "v1");
+  const { resolveAuthenticatedReturnPath } = loadTypeScript("src/services/return-path.service.ts");
+  const fixtures = loadTypeScript("src/services/auth.service.ts").developmentAuthFixtures;
+  const user = (id) => fixtures.find((item) => item.user.id === id).user;
+  const path = `/messages/${conversation.id}`;
+  assert.equal(resolveAuthenticatedReturnPath(path, user(s.userA.id)), path);
+  assert.equal(resolveAuthenticatedReturnPath(path, user(s.dealerA.id)), path);
+  assert.equal(resolveAuthenticatedReturnPath(path, user(s.userB.id)), "/messages");
+  assert.equal(resolveAuthenticatedReturnPath("https://evil.test", user(s.userA.id)), "/account");
 });
 
 test("vehicle offers enforce buyer and seller isolation with historical withdrawal", () => {
@@ -244,10 +294,7 @@ test("listing lifecycle blocks new activity while preserving published history",
       status,
     );
   }
-  s.localStorage.setItem(
-    "sd-published-listings",
-    JSON.stringify([managedListing("published")]),
-  );
+  s.localStorage.setItem("sd-published-listings", JSON.stringify([managedListing("published")]));
   const conversation = s.service.startConversation(s.userB, "listing-lifecycle");
   const offer = s.service.createOffer(s.userB, "listing-lifecycle", {
     amount: 900000,

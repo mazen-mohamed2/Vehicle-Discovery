@@ -218,3 +218,9 @@ export function roleAwareReturnPath(value: string | null | undefined, role: User
   }
   return safe;
 }
+
+export function isAuthenticationDependentPath(pathname: string) {
+  return ["/account", "/dealer-account", "/messages", "/notifications", "/sell"].some(
+    (root) => pathname === root || pathname.startsWith(`${root}/`),
+  );
+}

@@ -54,7 +54,12 @@ export function useMarketplaceCommunication(conversationId?: string) {
   });
   const read = useMutation({
     mutationFn: async (id: string) => service.markConversationRead(actor!, id),
-    onSuccess: invalidate,
+    onSuccess: async () => {
+      await Promise.all([
+        invalidate(),
+        client.invalidateQueries({ queryKey: queryKeys.notifications.all }),
+      ]);
+    },
   });
   const createOffer = useMutation({
     mutationFn: async (input: {

@@ -225,3 +225,14 @@ The Website owns participant-facing messages, offers, outcomes, and notification
 Dashboard may add operational visibility, moderation, abuse investigation, and audit history, but
 must consume the same backend contracts and lifecycle states without dashboard-only business
 statuses.
+
+The Website conversation and message experience is the participant-facing marketplace channel.
+The existing Dashboard chat must not be assumed to represent that same channel until a later parity
+audit decides whether it is marketplace communication or a separate support/admin/internal tool. If
+it represents marketplace communication, both applications must use the same canonical conversation,
+message, participant, listing, and notification IDs from one backend source of truth.
+
+Sprint 10 owns individual public seller profiles and reputation work, including reviews, ratings,
+badges, trust signals, and both user and dealer reputation rules. Until that domain and its backend
+evidence exist, communication surfaces show only the safe canonical display name and account type;
+they must not fabricate ratings, reviews, verification, or reputation claims.

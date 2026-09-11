@@ -207,6 +207,7 @@ export const marketplaceCommunicationService = {
           : item,
       ),
     );
+    notificationsService.markConversationRead(actor, conversationId);
   },
   createOffer(
     actor: CommunicationActor,

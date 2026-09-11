@@ -88,6 +88,19 @@ export const notificationsService = {
       ),
     );
   },
+  markConversationRead(actor: CommunicationActor, conversationId: string) {
+    const now = new Date().toISOString();
+    write(
+      read().map((item) =>
+        item.recipientUserId === actor.id &&
+        item.type === "NEW_MESSAGE" &&
+        item.relatedId === conversationId &&
+        !item.readAt
+          ? { ...item, readAt: now }
+          : item,
+      ),
+    );
+  },
   subscribe(callback: () => void) {
     if (typeof window === "undefined") return () => undefined;
     const storageHandler = (event: StorageEvent) => {

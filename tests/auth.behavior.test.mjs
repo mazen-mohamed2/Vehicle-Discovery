@@ -203,6 +203,20 @@ test("return paths are safe and role-aware after authentication", () => {
   assert.equal(roleAwareReturnPath("https://evil.test", "dealer"), "/dealer-account");
   assert.equal(roleAwareReturnPath("//evil.test", "user"), "/account");
 });
+test("authentication-dependent routes are distinguished from public routes", () => {
+  const { isAuthenticationDependentPath } = loadTypeScript("src/lib/auth.ts");
+  for (const path of [
+    "/account",
+    "/account/listings",
+    "/dealer-account/import-requests",
+    "/messages/conversation-1",
+    "/notifications",
+    "/sell",
+  ])
+    assert.equal(isAuthenticationDependentPath(path), true, path);
+  for (const path of ["/", "/vehicles", "/dealers/ag1", "/favorites", "/compare"])
+    assert.equal(isAuthenticationDependentPath(path), false, path);
+});
 test("remember true uses localStorage and remember false uses sessionStorage", async () => {
   const stores = browser();
   clearTypeScriptModules();

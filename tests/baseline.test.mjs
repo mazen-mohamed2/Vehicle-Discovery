@@ -764,7 +764,7 @@ test("auth credentials normalize safely and return paths reject redirects and lo
   assert.match(auth, /url\.origin !== "https:\/\/local\.invalid"/);
   assert.match(auth, /url\.pathname\.startsWith\("\/auth\/"\)/);
   assert.match(service, /INVALID_CREDENTIALS/);
-  assert.match(login, /roleAwareReturnPath\(params\.get\("returnTo"\), result\.user\.role\)/);
+  assert.match(login, /resolveAuthenticatedReturnPath\(params\.get\("returnTo"\), result\.user\)/);
   assert.match(login, /if \(auth\.isPending\) return/);
 });
 

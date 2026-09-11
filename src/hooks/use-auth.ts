@@ -34,7 +34,20 @@ export function useAuth() {
   });
   const logoutMutation = useMutation({
     mutationFn: authService.logout,
-    onSuccess: () => client.setQueryData(queryKeys.auth.session, null),
+    onSuccess: () => {
+      client.removeQueries({
+        predicate: (item) =>
+          [
+            "communication",
+            "notifications",
+            "import-workflow",
+            "managed-listings",
+            "favorites",
+            "compare",
+          ].includes(String(item.queryKey[0])),
+      });
+      client.setQueryData(queryKeys.auth.session, null);
+    },
   });
   const session = query.data ?? null;
   const user = session?.user ?? null;

@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { AuthBoundary } from "@/components/auth/AuthBoundary";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { useMarketplaceCommunication } from "@/hooks/use-marketplace-communication";
 import { communicationDetailState, CommunicationError } from "@/lib/communication";
 import { useI18n } from "@/lib/i18n";
 import { formatDate } from "@/lib/locale";
 import { publicCatalogService } from "@/services/public-catalog.service";
+import { developmentPublicProfile } from "@/services/auth.service";
 
 export function ConversationDetail({ id }: { id: string }) {
   const { t, locale } = useI18n();
@@ -21,6 +23,16 @@ export function ConversationDetail({ id }: { id: string }) {
     value: workflow.conversation,
     error: workflow.error,
   });
+  const counterpartId = workflow.conversation?.participantUserIds.find(
+    (participantId) => participantId !== workflow.actor?.id,
+  );
+  const counterpart = counterpartId ? developmentPublicProfile(counterpartId) : null;
+  const initials = counterpart?.displayName
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
   useEffect(() => {
     if (state === "ready") void workflow.markRead(id);
     // Mark once when the authorized detail resolves.
@@ -75,6 +87,34 @@ export function ConversationDetail({ id }: { id: string }) {
                 <Link href="/messages">{t("messages.back")}</Link>
               </Button>
             </header>
+            <section
+              className="mt-5 flex items-center gap-3 rounded-2xl surface-card p-4"
+              aria-label={t("messages.counterpart")}
+            >
+              <Avatar className="h-12 w-12">
+                {counterpart?.avatarUrl && <AvatarImage src={counterpart.avatarUrl} alt="" />}
+                <AvatarFallback aria-hidden="true">{initials || "?"}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="truncate font-bold">
+                  {counterpart?.displayName ?? t("messages.participant")}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t(
+                    counterpart?.role === "dealer"
+                      ? "messages.participant.dealer"
+                      : "messages.participant.individual",
+                  )}
+                </p>
+              </div>
+              {counterpart?.role === "dealer" && counterpart.dealerId && (
+                <Button asChild variant="outline" size="sm" className="ms-auto shrink-0">
+                  <Link href={`/dealers/${counterpart.dealerId}`}>
+                    {t("vehicle.dealerProfile")}
+                  </Link>
+                </Button>
+              )}
+            </section>
             <section
               className="mt-6 min-h-72 rounded-2xl surface-card p-5"
               aria-label={t("messages.history")}
