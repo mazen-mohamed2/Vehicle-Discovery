@@ -60,6 +60,14 @@
       "namedRegex": "^/dealers/(?<nxtPid>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/messages/[conversationId]",
+      "regex": "^/messages/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPconversationId": "nxtPconversationId"
+      },
+      "namedRegex": "^/messages/(?<nxtPconversationId>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/vehicles/[id]",
       "regex": "^/vehicles/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -112,10 +120,22 @@
       "namedRegex": "^/account/listings/new(?:/)?$"
     },
     {
+      "page": "/account/offers",
+      "regex": "^/account/offers(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/account/offers(?:/)?$"
+    },
+    {
       "page": "/account/profile",
       "regex": "^/account/profile(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/account/profile(?:/)?$"
+    },
+    {
+      "page": "/account/received-offers",
+      "regex": "^/account/received\\-offers(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/account/received\\-offers(?:/)?$"
     },
     {
       "page": "/auth/forgot-password",
@@ -172,6 +192,18 @@
       "namedRegex": "^/dealer\\-account/import\\-requests(?:/)?$"
     },
     {
+      "page": "/dealer-account/offers",
+      "regex": "^/dealer\\-account/offers(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dealer\\-account/offers(?:/)?$"
+    },
+    {
+      "page": "/dealer-account/received-offers",
+      "regex": "^/dealer\\-account/received\\-offers(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dealer\\-account/received\\-offers(?:/)?$"
+    },
+    {
       "page": "/dealers",
       "regex": "^/dealers(?:/)?$",
       "routeKeys": {},
@@ -194,6 +226,18 @@
       "regex": "^/import(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/import(?:/)?$"
+    },
+    {
+      "page": "/messages",
+      "regex": "^/messages(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/messages(?:/)?$"
+    },
+    {
+      "page": "/notifications",
+      "regex": "^/notifications(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/notifications(?:/)?$"
     },
     {
       "page": "/sell",
