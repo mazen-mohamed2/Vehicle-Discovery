@@ -44,6 +44,7 @@ export function useAuth() {
             "managed-listings",
             "favorites",
             "compare",
+            "trust-safety",
           ].includes(String(item.queryKey[0])),
       });
       client.setQueryData(queryKeys.auth.session, null);

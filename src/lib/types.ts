@@ -111,13 +111,7 @@ export interface Favorite {
   createdAt: string;
 }
 
-export interface Review {
-  id: string;
-  authorName: string;
-  rating: number;
-  content: string;
-  createdAt: string;
-}
+export type { ReviewRecord as Review } from "@/lib/trust-safety";
 
 export interface ImportRequest {
   id: string;

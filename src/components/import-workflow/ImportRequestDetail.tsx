@@ -24,6 +24,8 @@ import { useImportWorkflow } from "@/hooks/use-import-workflow";
 import { useI18n } from "@/lib/i18n";
 import { formatCurrency, formatDate, formatYear } from "@/lib/locale";
 import { agenciesService } from "@/services/agencies.service";
+import { TrustBadge } from "@/components/trust-safety/TrustBadge";
+import { trustSafetyService } from "@/services/trust-safety.service";
 import { resolveImportDetailState, type ImportOfferRecord } from "@/lib/import-workflow";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -232,7 +234,8 @@ function OwnerOffer({
           <h3 className="font-black">{dealer.data?.name ?? t("import.offer.dealer")}</h3>
           {dealer.data && (
             <p className="text-sm text-muted-foreground">
-              {dealer.data.rating} · {dealer.data.verified ? t("card.verified") : ""}
+              {dealer.data.rating}{" "}
+              <TrustBadge status={trustSafetyService.publicStatus("DEALER", dealer.data.id)} />
             </p>
           )}
         </div>

@@ -39,6 +39,8 @@ function similarTo(agencyId: string, limit: number): AgencyRecommendation[] {
 }
 
 export const agenciesService = {
+  canonicalVerified: (id: string) =>
+    Boolean(mockAgencies.find((agency) => agency.id === id)?.verified),
   list: (): Promise<Agency[]> => delay(mockAgencies),
   byId: (id: string): Promise<Agency | null> =>
     delay(mockAgencies.find((a) => a.id === id) ?? null),

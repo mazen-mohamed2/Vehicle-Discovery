@@ -61,6 +61,39 @@ test("marketplace communication routes, scoped queries, navigation, and vehicle 
   assert.match(header, /\/notifications/);
 });
 
+test("trust and safety routes use centralized accessible domains", async () => {
+  const [domain, service, blocks, seller, verification, reports, conversation, navigation, docs] =
+    await Promise.all([
+      read("src/lib/trust-safety.ts"),
+      read("src/services/trust-safety.service.ts"),
+      read("src/services/blocks.service.ts"),
+      read("src/components/trust-safety/SellerProfile.tsx"),
+      read("src/components/trust-safety/VerificationCenter.tsx"),
+      read("src/components/trust-safety/MyReports.tsx"),
+      read("src/components/communication/ConversationDetail.tsx"),
+      read("src/components/auth/AuthNavigation.tsx"),
+      read("DEVELOPMENT.md"),
+    ]);
+  for (const status of ["NOT_SUBMITTED", "PENDING_REVIEW", "VERIFIED", "REJECTED"])
+    assert.match(domain, new RegExp(status));
+  for (const target of ["LISTING", "USER", "DEALER", "CONVERSATION", "MESSAGE"])
+    assert.match(domain, new RegExp(target));
+  assert.doesNotMatch(service, /approveVerification|resolveReport/);
+  assert.match(service, /DUPLICATE_ACTIVE_REPORT/);
+  assert.match(blocks, /areBlocked/);
+  assert.match(seller, /\/sellers\/\$\{userId\}/);
+  assert.match(seller, /seller\.noReviews/);
+  assert.match(verification, /AuthBoundary role=\{role\}/);
+  assert.match(reports, /role="status"/);
+  assert.match(reports, /role="alert"/);
+  assert.match(conversation, /AlertDialog/);
+  assert.match(conversation, /targetType="CONVERSATION"/);
+  assert.match(navigation, /\/account\/verification/);
+  assert.match(navigation, /\/dealer-account\/reports/);
+  assert.match(docs, /Sprint 11 owns Transactions, Payments, and Escrow/);
+  assert.match(docs, /Sprint 12 owns/);
+});
+
 test("custom import routes, navigation, queries, and accessible controls are wired", async () => {
   const routes = [
     "src/app/(site)/account/import-requests/page.tsx",
@@ -373,18 +406,29 @@ test("favorites hydrate from browser storage and persist every mutation", async 
   assert.match(detail, /useFavorites\(\)/);
 });
 
-test("report listing opens an accessible reason dialog and confirms locally", async () => {
-  const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
+test("report listing opens the canonical accessible persisted report dialog", async () => {
+  const [detail, dialog] = await Promise.all([
+    read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx"),
+    read("src/components/trust-safety/ReportDialog.tsx"),
+  ]);
   assert.match(detail, /auth\.requireAuth\(returnPath, \(\) => setReportOpen\(true\)\)/);
-  assert.match(detail, /<Dialog open=\{open\} onOpenChange=\{onOpenChange\}>/);
-  assert.match(detail, /<DialogTitle>/);
-  assert.match(detail, /<DialogDescription>/);
-  assert.match(detail, /<RadioGroup/);
-  assert.match(detail, /aria-label=\{t\("vehicle\.report\.reasonLabel"\)\}/);
-  assert.match(detail, /disabled=\{!reason\}/);
-  assert.match(detail, /toast\.success\(t\("vehicle\.report\.successTitle"\)/);
-  for (const reason of ["incorrect", "sold", "fraud", "duplicate", "other"])
-    assert.match(detail, new RegExp(`"${reason}"`));
+  assert.match(detail, /targetType="LISTING"/);
+  assert.match(dialog, /<Dialog open=\{open\} onOpenChange=\{onOpenChange\}>/);
+  assert.match(dialog, /<DialogTitle>/);
+  assert.match(dialog, /<DialogDescription>/);
+  assert.match(dialog, /aria-invalid=\{Boolean\(error && !reason\)\}/);
+  assert.match(dialog, /safety\.submitReport/);
+  assert.match(dialog, /toast\.success\(t\("safety\.report\.success"\)\)/);
+  for (const reason of [
+    "SCAM_OR_FRAUD",
+    "MISLEADING_INFORMATION",
+    "HARASSMENT",
+    "SPAM",
+    "SUSPICIOUS_IDENTITY",
+    "INAPPROPRIATE_CONTENT",
+    "OTHER",
+  ])
+    assert.match(dialog, new RegExp(`"${reason}"`));
 });
 
 test("vehicle favorite control stays neutral until persisted favorites are hydrated", async () => {

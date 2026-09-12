@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldCheck, Star, MapPin, ArrowRight } from "lucide-react";
+import { Star, MapPin, ArrowRight } from "lucide-react";
 import type { Agency } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
+import { TrustBadge } from "@/components/trust-safety/TrustBadge";
+import { trustSafetyService } from "@/services/trust-safety.service";
 
 export function AgencyCard({ a, vehicleCount }: { a: Agency; vehicleCount: number }) {
   const { t } = useI18n();
@@ -19,7 +21,7 @@ export function AgencyCard({ a, vehicleCount }: { a: Agency; vehicleCount: numbe
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <h3 className="truncate text-base font-bold">{a.name}</h3>
-            {a.verified && <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />}
+            <TrustBadge status={trustSafetyService.publicStatus("DEALER", a.id)} />
           </div>
           <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">

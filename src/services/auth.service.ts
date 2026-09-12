@@ -83,6 +83,7 @@ export function developmentPublicProfile(userId: string) {
         role: user.role,
         dealerId: user.dealerId,
         avatarUrl: user.avatarUrl,
+        createdAt: user.createdAt,
       }
     : null;
 }

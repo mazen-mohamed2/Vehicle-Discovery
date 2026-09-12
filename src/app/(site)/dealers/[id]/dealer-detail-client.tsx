@@ -6,13 +6,13 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
+  Flag,
   Mail,
   MapPin,
   MessageCircle,
   Phone,
   Search,
   Share2,
-  ShieldCheck,
   Star,
   Store,
   UserRoundCheck,
@@ -37,6 +37,9 @@ import {
 } from "@/lib/dealer-inventory";
 import type { FuelType, Transmission } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
+import { ReportDialog } from "@/components/trust-safety/ReportDialog";
+import { TrustBadge } from "@/components/trust-safety/TrustBadge";
+import { trustSafetyService } from "@/services/trust-safety.service";
 
 const defaultFilters: DealerInventoryFilters = {
   search: "",
@@ -51,6 +54,7 @@ export function DealerDetailClient({ id }: { id: string }) {
   const { t, locale } = useI18n();
   const auth = useAuth();
   const [filters, setFilters] = useState(defaultFilters);
+  const [reportOpen, setReportOpen] = useState(false);
   const deferredSearch = useDeferredValue(filters.search);
   const { data: agency } = useSuspenseQuery({
     queryKey: queryKeys.agencies.detail(id),
@@ -113,11 +117,7 @@ export function DealerDetailClient({ id }: { id: string }) {
                   <h1 id="dealer-title" className="break-words text-3xl font-black sm:text-4xl">
                     {agency.name}
                   </h1>
-                  {agency.verified && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
-                      <ShieldCheck className="h-4 w-4" aria-hidden="true" /> {t("card.verified")}
-                    </span>
-                  )}
+                  <TrustBadge status={trustSafetyService.publicStatus("DEALER", agency.id)} />
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
                   <span
@@ -160,6 +160,12 @@ export function DealerDetailClient({ id }: { id: string }) {
                 className="col-span-2 sm:col-span-1"
               >
                 <MessageCircle className="me-2 h-4 w-4" /> {t("dealer.contact")}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => auth.requireAuth(`/dealers/${id}`, () => setReportOpen(true))}
+              >
+                <Flag className="me-2 h-4 w-4" /> {t("safety.report.dealer")}
               </Button>
               <Button variant="outline" onClick={() => placeholderAction(t("dealer.call"))}>
                 <Phone className="me-2 h-4 w-4" /> {t("dealer.call")}
@@ -396,6 +402,12 @@ export function DealerDetailClient({ id }: { id: string }) {
           )}
         </section>
       </div>
+      <ReportDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        targetType="DEALER"
+        targetId={id}
+      />
     </main>
   );
 }

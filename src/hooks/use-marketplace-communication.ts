@@ -61,6 +61,11 @@ export function useMarketplaceCommunication(conversationId?: string) {
       ]);
     },
   });
+  const block = useMutation({
+    mutationFn: async ({ id, blocked }: { id: string; blocked: boolean }) =>
+      blocked ? service.unblockParticipant(actor!, id) : service.blockParticipant(actor!, id),
+    onSuccess: invalidate,
+  });
   const createOffer = useMutation({
     mutationFn: async (input: {
       listingId: string;
@@ -85,6 +90,10 @@ export function useMarketplaceCommunication(conversationId?: string) {
     conversations: conversations.data?.map(({ conversation }) => conversation) ?? [],
     conversation: detail.data,
     messages: messages.data ?? [],
+    blockState:
+      actor && conversationId && detail.data
+        ? service.blockState(actor, conversationId)
+        : { blocked: false, blockedByMe: false, otherId: "" },
     buyerOffers: buyerOffers.data ?? [],
     receivedOffers: receivedOffers.data ?? [],
     error:
@@ -108,11 +117,13 @@ export function useMarketplaceCommunication(conversationId?: string) {
       start.isPending ||
       send.isPending ||
       read.isPending ||
+      block.isPending ||
       createOffer.isPending ||
       offerAction.isPending,
     startConversation: start.mutateAsync,
     sendMessage: send.mutateAsync,
     markRead: read.mutateAsync,
+    toggleBlock: block.mutateAsync,
     createOffer: createOffer.mutateAsync,
     runOfferAction: offerAction.mutateAsync,
   };

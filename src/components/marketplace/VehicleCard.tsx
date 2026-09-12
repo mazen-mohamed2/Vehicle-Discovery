@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, ImageOff, MapPin, Gauge, Scale, ShieldCheck, Star } from "lucide-react";
+import { Heart, ImageOff, MapPin, Gauge, Scale, Star } from "lucide-react";
 import { toast } from "sonner";
 import type { VehicleListing } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
@@ -11,6 +11,8 @@ import { formatCurrency, formatMileage, formatYear } from "@/lib/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useCompare } from "@/hooks/use-compare";
+import { TrustBadge } from "@/components/trust-safety/TrustBadge";
+import { trustSafetyService } from "@/services/trust-safety.service";
 
 export function VehicleCard({ v }: { v: VehicleListing }) {
   const { t, locale } = useI18n();
@@ -47,12 +49,7 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
                 {t("card.featured")}
               </span>
             )}
-            {v.verified && (
-              <span className="rounded-full bg-background/90 backdrop-blur px-2.5 py-0.5 text-[10px] font-bold uppercase text-foreground border border-border">
-                <ShieldCheck className="inline h-3 w-3 me-0.5 text-primary" />
-                {t("card.verified")}
-              </span>
-            )}
+            <TrustBadge status={trustSafetyService.publicStatus("VEHICLE", v.id)} />
           </div>
           <div className="relative z-10 grid gap-2">
             {isHydrating ? (

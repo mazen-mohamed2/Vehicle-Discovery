@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AuthBoundary } from "@/components/auth/AuthBoundary";
 import { Button } from "@/components/ui/button";
 import { useMarketplaceCommunication } from "@/hooks/use-marketplace-communication";
@@ -79,10 +80,22 @@ function OfferCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-black">{listing?.title ?? t("vehicleOffers.unavailableVehicle")}</h2>
-          <p className="text-sm text-muted-foreground">
-            {counterpart?.displayName ??
-              t(received ? "vehicleOffers.buyer" : "vehicleOffers.seller")}
-          </p>
+          {counterpart ? (
+            <Link
+              className="text-sm text-muted-foreground hover:text-primary hover:underline"
+              href={
+                counterpart.role === "dealer" && counterpart.dealerId
+                  ? `/dealers/${counterpart.dealerId}`
+                  : `/sellers/${counterpart.id}`
+              }
+            >
+              {counterpart.displayName}
+            </Link>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {t(received ? "vehicleOffers.buyer" : "vehicleOffers.seller")}
+            </p>
+          )}
         </div>
         <span className="rounded-full bg-secondary px-2 py-1 text-xs font-semibold">
           {t(`vehicleOffers.status.${offer.status}`)}

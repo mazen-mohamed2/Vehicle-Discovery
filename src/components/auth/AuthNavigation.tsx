@@ -114,6 +114,20 @@ export function AuthNavigation({
         {auth.role === "user" && (
           <>
             <Link
+              href="/account/verification"
+              onClick={onNavigate}
+              className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
+            >
+              {t("verification.title")}
+            </Link>
+            <Link
+              href="/account/reports"
+              onClick={onNavigate}
+              className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
+            >
+              {t("safety.reports.mine")}
+            </Link>
+            <Link
               href="/account/profile"
               onClick={onNavigate}
               className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
@@ -130,13 +144,29 @@ export function AuthNavigation({
           </>
         )}
         {auth.role === "dealer" && (
-          <Link
-            href="/dealer-account/import-requests"
-            onClick={onNavigate}
-            className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
-          >
-            {t("import.opportunities")}
-          </Link>
+          <>
+            <Link
+              href="/dealer-account/verification"
+              onClick={onNavigate}
+              className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
+            >
+              {t("verification.title")}
+            </Link>
+            <Link
+              href="/dealer-account/reports"
+              onClick={onNavigate}
+              className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
+            >
+              {t("safety.reports.mine")}
+            </Link>
+            <Link
+              href="/dealer-account/import-requests"
+              onClick={onNavigate}
+              className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
+            >
+              {t("import.opportunities")}
+            </Link>
+          </>
         )}
         {auth.user?.dealerId && (
           <Link
@@ -202,6 +232,12 @@ export function AuthNavigation({
         {auth.role === "user" && (
           <>
             <DropdownMenuItem asChild>
+              <Link href="/account/verification">{t("verification.title")}</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/account/reports">{t("safety.reports.mine")}</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <Link href="/account/profile">{t("auth.profile")}</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
@@ -210,9 +246,17 @@ export function AuthNavigation({
           </>
         )}
         {auth.role === "dealer" && (
-          <DropdownMenuItem asChild>
-            <Link href="/dealer-account/import-requests">{t("import.opportunities")}</Link>
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem asChild>
+              <Link href="/dealer-account/verification">{t("verification.title")}</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dealer-account/reports">{t("safety.reports.mine")}</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dealer-account/import-requests">{t("import.opportunities")}</Link>
+            </DropdownMenuItem>
+          </>
         )}
         {auth.user?.dealerId && (
           <DropdownMenuItem asChild>

@@ -5,7 +5,6 @@ import { useState } from "react";
 import {
   ArrowLeft,
   CalendarDays,
-  CheckCircle2,
   Clock3,
   Eye,
   Flag,
@@ -15,7 +14,6 @@ import {
   HandCoins,
   Scale,
   Share2,
-  ShieldCheck,
   Star,
   Store,
   UserRound,
@@ -38,7 +36,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { VehicleGallery } from "./vehicle-gallery";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -47,6 +44,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useMarketplaceCommunication } from "@/hooks/use-marketplace-communication";
 import { CommunicationError } from "@/lib/communication";
+import { ReportDialog } from "@/components/trust-safety/ReportDialog";
+import { TrustBadge } from "@/components/trust-safety/TrustBadge";
+import { trustSafetyService } from "@/services/trust-safety.service";
+import { VehicleVerificationAction } from "@/components/trust-safety/VehicleVerificationAction";
 
 export function VehicleDetailClient({
   vehicle: v,
@@ -59,7 +60,6 @@ export function VehicleDetailClient({
 }) {
   const { t, locale } = useI18n();
   const [reportOpen, setReportOpen] = useState(false);
-  const [reportReason, setReportReason] = useState("");
   const [offerOpen, setOfferOpen] = useState(false);
   const { isFavorite, toggleFavorite, isHydrating, togglingListingId } = useFavorites();
   const saved = isFavorite(v.id);
@@ -134,11 +134,7 @@ export function VehicleDetailClient({
               <span className="rounded-full bg-secondary px-2 py-1 font-semibold">
                 {v.sellerType === "agency" ? t("card.byAgency") : t("card.byOwner")}
               </span>
-              {v.verified && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-primary">
-                  <ShieldCheck className="h-3 w-3" /> {t("card.verified")}
-                </span>
-              )}
+              <TrustBadge status={trustSafetyService.publicStatus("VEHICLE", v.id)} />
             </div>
             <h1 className="mt-4 text-2xl font-black sm:text-3xl">{v.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -232,11 +228,13 @@ export function VehicleDetailClient({
               type="button"
               variant="ghost"
               size="sm"
+              disabled={ownListing}
               className="mt-2 w-full text-muted-foreground"
               onClick={() => auth.requireAuth(returnPath, () => setReportOpen(true))}
             >
               <Flag className="me-2 h-4 w-4" /> {t("vehicle.report")}
             </Button>
+            {ownListing && <VehicleVerificationAction listingId={v.id} />}
           </section>
 
           <SellerCard vehicle={v} seller={seller} />
@@ -272,16 +270,9 @@ export function VehicleDetailClient({
       </section>
       <ReportDialog
         open={reportOpen}
-        reason={reportReason}
         onOpenChange={setReportOpen}
-        onReasonChange={setReportReason}
-        onSubmit={() => {
-          setReportOpen(false);
-          setReportReason("");
-          toast.success(t("vehicle.report.successTitle"), {
-            description: t("vehicle.report.successDescription"),
-          });
-        }}
+        targetType="LISTING"
+        targetId={v.id}
       />
       <VehicleOfferDialog
         open={offerOpen}
@@ -410,57 +401,6 @@ function VehicleOfferDialog({
   );
 }
 
-function ReportDialog({
-  open,
-  reason,
-  onOpenChange,
-  onReasonChange,
-  onSubmit,
-}: {
-  open: boolean;
-  reason: string;
-  onOpenChange: (open: boolean) => void;
-  onReasonChange: (reason: string) => void;
-  onSubmit: () => void;
-}) {
-  const { t } = useI18n();
-  const reasons = ["incorrect", "sold", "fraud", "duplicate", "other"];
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("vehicle.report.title")}</DialogTitle>
-          <DialogDescription>{t("vehicle.report.description")}</DialogDescription>
-        </DialogHeader>
-        <RadioGroup
-          value={reason}
-          onValueChange={onReasonChange}
-          aria-label={t("vehicle.report.reasonLabel")}
-          className="my-2 gap-3"
-        >
-          {reasons.map((value) => (
-            <label
-              key={value}
-              className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm font-medium hover:bg-muted/60"
-            >
-              <RadioGroupItem value={value} />
-              {t(`vehicle.report.reason.${value}`)}
-            </label>
-          ))}
-        </RadioGroup>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {t("common.close")}
-          </Button>
-          <Button type="button" disabled={!reason} onClick={onSubmit}>
-            {t("vehicle.report.submit")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 function SpecificationGroup({
   title,
   items,
@@ -508,9 +448,14 @@ function SellerCard({ vehicle, seller }: { vehicle: VehicleListing; seller?: Age
               : t("vehicle.individualSeller")}
           </p>
         </div>
-        {(seller?.verified ?? vehicle.verified) && (
-          <CheckCircle2 className="h-5 w-5 text-primary" aria-label={t("card.verified")} />
-        )}
+        <TrustBadge
+          status={trustSafetyService.publicStatus(
+            isAgency ? "DEALER" : "INDIVIDUAL",
+            isAgency
+              ? (seller?.id ?? vehicle.sellerId)
+              : (vehicle.sellerUserId ?? vehicle.sellerId),
+          )}
+        />
       </div>
       <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
         <SellerFact
@@ -547,6 +492,10 @@ function SellerCard({ vehicle, seller }: { vehicle: VehicleListing; seller?: Age
       {isAgency && seller ? (
         <Button asChild variant="outline" className="mt-5 w-full">
           <Link href={`/dealers/${seller.id}`}>{t("vehicle.dealerProfile")}</Link>
+        </Button>
+      ) : vehicle.sellerUserId ? (
+        <Button asChild variant="outline" className="mt-5 w-full">
+          <Link href={`/sellers/${vehicle.sellerUserId}`}>{t("seller.viewProfile")}</Link>
         </Button>
       ) : null}
     </section>

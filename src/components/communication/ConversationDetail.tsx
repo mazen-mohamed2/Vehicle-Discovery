@@ -2,8 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
+import { Flag, ShieldBan } from "lucide-react";
 import { AuthBoundary } from "@/components/auth/AuthBoundary";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { useMarketplaceCommunication } from "@/hooks/use-marketplace-communication";
@@ -12,12 +24,14 @@ import { useI18n } from "@/lib/i18n";
 import { formatDate } from "@/lib/locale";
 import { publicCatalogService } from "@/services/public-catalog.service";
 import { developmentPublicProfile } from "@/services/auth.service";
+import { ReportDialog } from "@/components/trust-safety/ReportDialog";
 
 export function ConversationDetail({ id }: { id: string }) {
   const { t, locale } = useI18n();
   const workflow = useMarketplaceCommunication(id);
   const [body, setBody] = useState("");
   const [fieldError, setFieldError] = useState("");
+  const [reportOpen, setReportOpen] = useState(false);
   const state = communicationDetailState({
     isLoading: workflow.isLoading,
     value: workflow.conversation,
@@ -107,13 +121,73 @@ export function ConversationDetail({ id }: { id: string }) {
                   )}
                 </p>
               </div>
-              {counterpart?.role === "dealer" && counterpart.dealerId && (
-                <Button asChild variant="outline" size="sm" className="ms-auto shrink-0">
-                  <Link href={`/dealers/${counterpart.dealerId}`}>
-                    {t("vehicle.dealerProfile")}
-                  </Link>
+              <div className="ms-auto flex flex-wrap gap-2">
+                {counterpart && (
+                  <Button asChild variant="outline" size="sm">
+                    <Link
+                      href={
+                        counterpart.role === "dealer" && counterpart.dealerId
+                          ? `/dealers/${counterpart.dealerId}`
+                          : `/sellers/${counterpart.id}`
+                      }
+                    >
+                      {t(
+                        counterpart.role === "dealer"
+                          ? "vehicle.dealerProfile"
+                          : "seller.viewProfile",
+                      )}
+                    </Link>
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setReportOpen(true)}
+                >
+                  <Flag className="me-1 h-4 w-4" />
+                  {t("safety.report.title")}
                 </Button>
-              )}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="outline" size="sm">
+                      <ShieldBan className="me-1 h-4 w-4" />
+                      {t(workflow.blockState.blockedByMe ? "safety.unblock" : "safety.block")}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        {t(
+                          workflow.blockState.blockedByMe
+                            ? "safety.unblock.confirmTitle"
+                            : "safety.block.confirmTitle",
+                        )}
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t(
+                          workflow.blockState.blockedByMe
+                            ? "safety.unblock.confirmDescription"
+                            : "safety.block.confirmDescription",
+                        )}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t("form.cancel")}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() =>
+                          void workflow.toggleBlock({
+                            id,
+                            blocked: workflow.blockState.blockedByMe,
+                          })
+                        }
+                      >
+                        {t(workflow.blockState.blockedByMe ? "safety.unblock" : "safety.block")}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </section>
             <section
               className="mt-6 min-h-72 rounded-2xl surface-card p-5"
@@ -150,6 +224,13 @@ export function ConversationDetail({ id }: { id: string }) {
                 </ol>
               )}
             </section>
+            {workflow.blockState.blocked && (
+              <p className="mt-4 rounded-lg bg-secondary p-3 text-sm" role="status">
+                {t(
+                  workflow.blockState.blockedByMe ? "safety.blockedByYou" : "safety.blockedByOther",
+                )}
+              </p>
+            )}
             <form className="mt-4" onSubmit={submit} aria-busy={workflow.isPending}>
               <label htmlFor="message-body" className="font-bold">
                 {t("messages.compose")}
@@ -161,16 +242,23 @@ export function ConversationDetail({ id }: { id: string }) {
                 onChange={(event) => setBody(event.target.value)}
                 aria-invalid={Boolean(fieldError)}
                 aria-describedby={fieldError ? "message-error" : undefined}
+                disabled={workflow.blockState.blocked}
               />
               {fieldError && (
                 <p id="message-error" className="mt-1 text-sm text-destructive">
                   {fieldError}
                 </p>
               )}
-              <Button className="mt-3" disabled={workflow.isPending}>
+              <Button className="mt-3" disabled={workflow.isPending || workflow.blockState.blocked}>
                 {workflow.isPending ? t("messages.sending") : t("messages.send")}
               </Button>
             </form>
+            <ReportDialog
+              open={reportOpen}
+              onOpenChange={setReportOpen}
+              targetType="CONVERSATION"
+              targetId={id}
+            />
           </>
         )}
       </main>

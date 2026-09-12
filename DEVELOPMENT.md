@@ -236,3 +236,63 @@ Sprint 10 owns individual public seller profiles and reputation work, including 
 badges, trust signals, and both user and dealer reputation rules. Until that domain and its backend
 evidence exist, communication surfaces show only the safe canonical display name and account type;
 they must not fabricate ratings, reviews, verification, or reputation claims.
+
+# Sprint 10: trust, verification, safety, and reputation foundation
+
+Public individual seller profiles live at `/sellers/[userId]` and resolve only canonical public
+display name, account type, optional avatar, member date, active public listings, and a truthful
+empty reputation summary. They never expose email, phone, address, authentication state, documents,
+or private verification details. Dealer profiles remain their own public domain and retain the
+existing fixture-backed rating and review-count presentation; those legacy fields must converge on
+the future canonical Review aggregate rather than becoming a competing reputation system.
+
+`VerificationRequestRecord` is the canonical frontend contract for `INDIVIDUAL`, `DEALER`, and
+`VEHICLE` subjects. Its lifecycle is `NOT_SUBMITTED` (derived absence), `PENDING_REVIEW`, `VERIFIED`,
+or `REJECTED`. Website owners may submit or resubmit an eligible rejected request, but no Website
+mutation can approve or reject it. Only `VERIFIED` produces a public badge through the centralized
+resolver. Pending/rejected details remain private. Existing verified dealer and seed-vehicle flags
+are treated as the current canonical fixture source until one backend source replaces them.
+
+Vehicle verification uses the canonical public listing ID and seller account ID. It does not claim
+government identity, theft-database, traffic-authority, ownership-transfer, or physical-inspection
+checks. No document picker or upload is implemented: raw files, bytes, names, document types, object
+URLs, and fake cloud references are never persisted. A secure backend media/document boundary is
+required before collecting KYC evidence. Existing listing declarations continue to record only the
+seller's accuracy and authorization assertions; declarations do not prove ownership or verification.
+
+`ReportRecord` supports `LISTING`, `USER`, `DEALER`, `CONVERSATION`, and `MESSAGE` targets with the
+shared reasons `SCAM_OR_FRAUD`, `MISLEADING_INFORMATION`, `HARASSMENT`, `SPAM`,
+`SUSPICIOUS_IDENTITY`, `INAPPROPRIATE_CONTENT`, and `OTHER`. Website submissions remain
+`SUBMITTED`; users cannot move reports to `UNDER_REVIEW` or `RESOLVED`. Active duplicates are
+rejected, self-reporting is rejected where nonsensical, private communication targets require
+participant access, and `/account/reports` or `/dealer-account/reports` exposes only the reporter's
+own safe history without moderation notes.
+
+`BlockRelationship` stores canonical blocker and blocked account IDs. A participant may block only
+someone in an authorized conversation, only the blocker may unblock, and history remains visible.
+Either-direction blocking prevents new conversations and messages and therefore prevents new-message
+notifications; it does not delete historical messages or notifications and does not silently alter
+offers, payments, transactions, or legal obligations. Wider enforcement belongs to backend policy.
+
+`ReviewRecord` requires a canonical `transactionId` and supports only `INDIVIDUAL_SELLER` and
+`DEALER`. Sprint 10 exposes no review mutation or arbitrary eligibility. A completed qualifying
+Transaction is the future eligibility boundary, so individual profiles truthfully show no reviews
+and no generated rating today. Sprint 11 owns Transactions, Payments, and Escrow. Sprint 12 owns
+transaction-backed Review eligibility, the final Website audit, and domain handoff.
+
+The mock repositories persist only safe verification declarations, reports, and block relationships
+and notify TanStack Query through the same custom/storage-event pattern used elsewhere. Private keys
+contain canonical account scope; public seller/reputation keys contain no owner-private data.
+Malformed persistence raises typed terminal errors instead of becoming an empty success state.
+
+The Website owns request submission/status, public badges, report submission/history, participant
+blocking, and public reputation presentation. A future React/Vite Dashboard may review verification
+evidence, approve/reject verification, investigate reports, moderate reviews, and expose safety audit
+history, but must use the same backend `VerificationRequest`, `Report`, `Review`, block relationship,
+and canonical User/Dealer/Vehicle IDs without dashboard-only statuses.
+
+The backend phase must enforce roles and ownership server-side; provide secure document upload and
+encrypted storage, malware scanning, retention/deletion policy, privacy controls, moderator identity,
+verification and moderation audit trails, report abuse/spam rate limits, server-authoritative badges,
+block enforcement, transaction-backed review eligibility, review moderation, and complete audit
+logging. The frontend mock is product behavior, not a security boundary.

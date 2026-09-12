@@ -69,4 +69,17 @@ export const queryKeys = {
     unread: (scope: import("@/lib/storage-scope").StorageScope) =>
       ["notifications", scope, "unread"] as const,
   },
+  trustSafety: {
+    all: ["trust-safety"] as const,
+    sellerProfile: (userId: string) => ["trust-safety", "seller", userId] as const,
+    verification: (scope: import("@/lib/storage-scope").StorageScope, type: string, id: string) =>
+      ["trust-safety", scope, "verification", type, id] as const,
+    publicVerification: (type: string, id: string) =>
+      ["trust-safety", "public-verification", type, id] as const,
+    reports: (scope: import("@/lib/storage-scope").StorageScope) =>
+      ["trust-safety", scope, "reports"] as const,
+    blocks: (scope: import("@/lib/storage-scope").StorageScope) =>
+      ["trust-safety", scope, "blocks"] as const,
+    reputation: (type: string, id: string) => ["trust-safety", "reputation", type, id] as const,
+  },
 } as const;

@@ -10,6 +10,7 @@ import { publicCatalogService } from "@/services/public-catalog.service";
 import { notificationsService } from "@/services/notifications.service";
 import { developmentPublicProfile } from "@/services/auth.service";
 import type { VehicleListing } from "@/lib/types";
+import { blocksService } from "@/services/blocks.service";
 
 const CONVERSATIONS_KEY = "sd-marketplace-conversations";
 const MESSAGES_KEY = "sd-marketplace-messages";
@@ -114,6 +115,8 @@ export const marketplaceCommunicationService = {
   startConversation(actor: CommunicationActor, listingId: string) {
     const listing = listingForInteraction(listingId);
     if (listing.sellerUserId === actor.id) throw new CommunicationError("SELF_INTERACTION");
+    if (blocksService.areBlocked(actor.id, listing.sellerUserId))
+      throw new CommunicationError("BLOCKED");
     const existing = conversations().find(
       (item) =>
         item.listingId === listingId &&
@@ -169,6 +172,8 @@ export const marketplaceCommunicationService = {
   },
   sendMessage(actor: CommunicationActor, conversationId: string, body: string) {
     const conversation = conversationFor(actor, conversationId);
+    const recipient = conversation.participantUserIds.find((id) => id !== actor.id)!;
+    if (blocksService.areBlocked(actor.id, recipient)) throw new CommunicationError("BLOCKED");
     const clean = body.trim();
     if (!clean || clean.length > 2000)
       throw new CommunicationError("VALIDATION_ERROR", { body: clean ? "length" : "required" });
@@ -188,7 +193,6 @@ export const marketplaceCommunicationService = {
         item.id === conversationId ? { ...item, updatedAt: now, lastMessageAt: now } : item,
       ),
     );
-    const recipient = conversation.participantUserIds.find((id) => id !== actor.id)!;
     notificationsService.create(
       recipient,
       "NEW_MESSAGE",
@@ -208,6 +212,22 @@ export const marketplaceCommunicationService = {
       ),
     );
     notificationsService.markConversationRead(actor, conversationId);
+  },
+  blockState(actor: CommunicationActor, conversationId: string) {
+    const conversation = conversationFor(actor, conversationId);
+    const otherId = conversation.participantUserIds.find((id) => id !== actor.id)!;
+    const mine = blocksService.list(actor.id).some((item) => item.blockedUserId === otherId);
+    return { blocked: blocksService.areBlocked(actor.id, otherId), blockedByMe: mine, otherId };
+  },
+  blockParticipant(actor: CommunicationActor, conversationId: string) {
+    const conversation = conversationFor(actor, conversationId);
+    const otherId = conversation.participantUserIds.find((id) => id !== actor.id)!;
+    return blocksService.block(actor.id, otherId, conversation.participantUserIds);
+  },
+  unblockParticipant(actor: CommunicationActor, conversationId: string) {
+    const conversation = conversationFor(actor, conversationId);
+    const otherId = conversation.participantUserIds.find((id) => id !== actor.id)!;
+    return blocksService.unblock(actor.id, otherId, conversation.participantUserIds);
   },
   createOffer(
     actor: CommunicationActor,
@@ -334,9 +354,11 @@ export const marketplaceCommunicationService = {
     };
     window.addEventListener(EVENT, callback);
     window.addEventListener("storage", storageHandler);
+    const unsubscribeBlocks = blocksService.subscribe(callback);
     return () => {
       window.removeEventListener(EVENT, callback);
       window.removeEventListener("storage", storageHandler);
+      unsubscribeBlocks();
     };
   },
 };
