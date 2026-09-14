@@ -94,6 +94,31 @@ test("trust and safety routes use centralized accessible domains", async () => {
   assert.match(docs, /Sprint 12 owns/);
 });
 
+test("Sprint 10 QA responsive and locale structure is owner-aware and deterministic", async () => {
+  const [seller, conversation, header, layout, i18n, docs] = await Promise.all([
+    read("src/components/trust-safety/SellerProfile.tsx"),
+    read("src/components/communication/ConversationDetail.tsx"),
+    read("src/components/site/SiteHeader.tsx"),
+    read("src/app/layout.tsx"),
+    read("src/lib/i18n.tsx"),
+    read("DEVELOPMENT.md"),
+  ]);
+  assert.match(seller, /viewerState/);
+  assert.match(seller, /isOwner &&/);
+  assert.match(seller, /isVisitor &&/);
+  assert.match(seller, /break-words text-2xl/);
+  assert.match(seller, /w-full sm:w-auto/);
+  assert.match(conversation, /line-clamp-2 break-words text-2xl/);
+  assert.match(conversation, /min-\[390px\]:grid-cols-3/);
+  assert.match(conversation, /w-full sm:w-auto/);
+  assert.match(header, /switchLocale\(true\)/);
+  assert.match(header, /aria-label=\{t\("a11y\.switchLanguage"\)\}/);
+  assert.match(layout, /rootDocumentAttributes\(locale, theme\)/);
+  assert.match(i18n, /rootDocumentAttributes\(locale, theme\)/);
+  assert.doesNotMatch(i18n, /rtl-enabled/);
+  assert.match(docs, /Listing publication and Vehicle Verification are independent lifecycles/);
+});
+
 test("custom import routes, navigation, queries, and accessible controls are wired", async () => {
   const routes = [
     "src/app/(site)/account/import-requests/page.tsx",

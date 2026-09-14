@@ -217,6 +217,20 @@ test("authentication-dependent routes are distinguished from public routes", () 
   for (const path of ["/", "/vehicles", "/dealers/ag1", "/favorites", "/compare"])
     assert.equal(isAuthenticationDependentPath(path), false, path);
 });
+test("root document locale and theme attributes are deterministic", () => {
+  const { rootDocumentAttributes } = loadTypeScript("src/lib/root-document.ts");
+  assert.deepEqual(rootDocumentAttributes("en", "dark"), {
+    lang: "en",
+    dir: "ltr",
+    className: "dark",
+  });
+  assert.deepEqual(rootDocumentAttributes("ar", "light"), {
+    lang: "ar",
+    dir: "rtl",
+    className: "",
+  });
+  assert.doesNotMatch(JSON.stringify(rootDocumentAttributes("en", "dark")), /rtl-enabled/);
+});
 test("remember true uses localStorage and remember false uses sessionStorage", async () => {
   const stores = browser();
   clearTypeScriptModules();

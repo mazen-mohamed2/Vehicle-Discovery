@@ -10,6 +10,9 @@ export interface PublicIndividualSellerProfile {
 }
 
 export const sellerProfilesService = {
+  viewerState(viewerUserId: string | null | undefined, sellerUserId: string) {
+    return viewerUserId === sellerUserId ? ("owner" as const) : ("visitor" as const);
+  },
   byId(userId: string): PublicIndividualSellerProfile | null {
     const profile = developmentPublicProfile(userId);
     if (!profile || profile.role !== "user") return null;

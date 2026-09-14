@@ -260,6 +260,12 @@ URLs, and fake cloud references are never persisted. A secure backend media/docu
 required before collecting KYC evidence. Existing listing declarations continue to record only the
 seller's accuracy and authorization assertions; declarations do not prove ownership or verification.
 
+Listing publication and Vehicle Verification are independent lifecycles. A `PUBLISHED` listing stays
+publicly discoverable while verification is `NOT_SUBMITTED` or `PENDING_REVIEW`; requesting
+verification never changes the listing status. Only `VERIFIED` adds a public badge. The future
+Dashboard/Backend reviews explicit verification requests and does not approve every marketplace
+listing as a prerequisite for publication.
+
 `ReportRecord` supports `LISTING`, `USER`, `DEALER`, `CONVERSATION`, and `MESSAGE` targets with the
 shared reasons `SCAM_OR_FRAUD`, `MISLEADING_INFORMATION`, `HARASSMENT`, `SPAM`,
 `SUSPICIOUS_IDENTITY`, `INAPPROPRIATE_CONTENT`, and `OTHER`. Website submissions remain

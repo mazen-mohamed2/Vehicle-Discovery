@@ -46,6 +46,9 @@ export function SellerProfile({ userId }: { userId: string }) {
       </main>
     );
   const profile = query.data;
+  const viewerState = sellerProfilesService.viewerState(auth.user?.id, profile.id);
+  const isOwner = !auth.isHydrating && viewerState === "owner";
+  const isVisitor = !auth.isHydrating && viewerState === "visitor";
   const listings = sellerProfilesService.listings(userId);
   const initials = profile.displayName
     .split(/\s+/)
@@ -55,26 +58,44 @@ export function SellerProfile({ userId }: { userId: string }) {
     .toUpperCase();
   return (
     <main className="mx-auto min-h-[60vh] max-w-6xl px-4 py-10 sm:px-6">
-      <header className="flex flex-wrap items-center gap-4 rounded-2xl surface-card p-6 shadow-card">
-        <Avatar className="h-20 w-20">
-          {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt="" />}
-          <AvatarFallback>{initials}</AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm text-primary">{t("seller.individual")}</p>
-          <h1 className="truncate text-3xl font-black">{profile.displayName}</h1>
-          <p className="text-sm text-muted-foreground">
-            {t("seller.memberSince")} {formatDate(profile.memberSince, locale)}
-          </p>
-          <TrustBadge status={trustSafetyService.publicStatus("INDIVIDUAL", profile.id)} />
+      <header className="rounded-2xl surface-card p-4 shadow-card sm:p-6">
+        <div className="flex min-w-0 items-start gap-4">
+          <Avatar className="h-16 w-16 shrink-0 sm:h-20 sm:w-20">
+            {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt="" />}
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-primary">
+              {isOwner ? t("seller.ownProfile") : t("seller.individual")}
+            </p>
+            <h1 className="break-words text-2xl font-black leading-tight sm:text-3xl">
+              {profile.displayName}
+            </h1>
+            <p className="mt-1 text-sm leading-5 text-muted-foreground">
+              {t("seller.memberSince")} {formatDate(profile.memberSince, locale)}
+            </p>
+            <div className="mt-2">
+              <TrustBadge status={trustSafetyService.publicStatus("INDIVIDUAL", profile.id)} />
+            </div>
+          </div>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => auth.requireAuth(`/sellers/${userId}`, () => setReportOpen(true))}
-        >
-          <Flag className="me-2 h-4 w-4" />
-          {t("safety.report.seller")}
-        </Button>
+        <div className="mt-4 grid gap-2 sm:flex sm:justify-end">
+          {isOwner && (
+            <Button asChild variant="outline" className="w-full sm:w-auto">
+              <Link href="/account/profile">{t("seller.manageProfile")}</Link>
+            </Button>
+          )}
+          {isVisitor && (
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => auth.requireAuth(`/sellers/${userId}`, () => setReportOpen(true))}
+            >
+              <Flag className="me-2 h-4 w-4" />
+              {t("safety.report.seller")}
+            </Button>
+          )}
+        </div>
       </header>
       <section className="mt-8" aria-labelledby="seller-listings">
         <h2 id="seller-listings" className="text-2xl font-black">

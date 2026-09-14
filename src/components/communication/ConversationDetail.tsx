@@ -89,41 +89,43 @@ export function ConversationDetail({ id }: { id: string }) {
           </section>
         ) : (
           <>
-            <header className="flex flex-wrap items-end justify-between gap-3">
-              <div>
+            <header className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0">
                 <p className="text-sm text-primary">{t("messages.vehicleContext")}</p>
-                <h1 className="text-3xl font-black">
+                <h1 className="line-clamp-2 break-words text-2xl font-black leading-tight sm:text-3xl">
                   {publicCatalogService.byId(workflow.conversation.listingId)?.title ??
                     workflow.conversation.listingId}
                 </h1>
               </div>
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
                 <Link href="/messages">{t("messages.back")}</Link>
               </Button>
             </header>
             <section
-              className="mt-5 flex items-center gap-3 rounded-2xl surface-card p-4"
+              className="mt-5 rounded-2xl surface-card p-4"
               aria-label={t("messages.counterpart")}
             >
-              <Avatar className="h-12 w-12">
-                {counterpart?.avatarUrl && <AvatarImage src={counterpart.avatarUrl} alt="" />}
-                <AvatarFallback aria-hidden="true">{initials || "?"}</AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <p className="truncate font-bold">
-                  {counterpart?.displayName ?? t("messages.participant")}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t(
-                    counterpart?.role === "dealer"
-                      ? "messages.participant.dealer"
-                      : "messages.participant.individual",
-                  )}
-                </p>
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar className="h-12 w-12 shrink-0">
+                  {counterpart?.avatarUrl && <AvatarImage src={counterpart.avatarUrl} alt="" />}
+                  <AvatarFallback aria-hidden="true">{initials || "?"}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="break-words font-bold">
+                    {counterpart?.displayName ?? t("messages.participant")}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {t(
+                      counterpart?.role === "dealer"
+                        ? "messages.participant.dealer"
+                        : "messages.participant.individual",
+                    )}
+                  </p>
+                </div>
               </div>
-              <div className="ms-auto flex flex-wrap gap-2">
+              <div className="mt-4 grid grid-cols-1 gap-2 min-[390px]:grid-cols-3 sm:flex sm:flex-wrap sm:justify-end">
                 {counterpart && (
-                  <Button asChild variant="outline" size="sm">
+                  <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
                     <Link
                       href={
                         counterpart.role === "dealer" && counterpart.dealerId
@@ -143,6 +145,7 @@ export function ConversationDetail({ id }: { id: string }) {
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   onClick={() => setReportOpen(true)}
                 >
                   <Flag className="me-1 h-4 w-4" />
@@ -150,7 +153,7 @@ export function ConversationDetail({ id }: { id: string }) {
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button type="button" variant="outline" size="sm">
+                    <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto">
                       <ShieldBan className="me-1 h-4 w-4" />
                       {t(workflow.blockState.blockedByMe ? "safety.unblock" : "safety.block")}
                     </Button>

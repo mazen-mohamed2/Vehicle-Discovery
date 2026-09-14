@@ -51,6 +51,7 @@ function setup() {
     communication: loadTypeScript("src/services/marketplace-communication.service.ts")
       .marketplaceCommunicationService,
     sellers: loadTypeScript("src/services/seller-profiles.service.ts").sellerProfilesService,
+    catalog: loadTypeScript("src/services/public-catalog.service.ts").publicCatalogService,
     userA: actor("user-demo"),
     userB: actor("user-qa-b"),
     dealerA: actor("dealer-demo"),
@@ -74,6 +75,31 @@ test("public individual profile exposes only safe identity and active public lis
   assert.deepEqual(s.sellers.reputation(s.userA.id), { reviews: [], rating: null });
 });
 
+test("seller profile owner and visitor actions resolve without weakening self-report enforcement", () => {
+  const s = setup();
+  assert.equal(s.sellers.byId(s.userA.id).id, s.userA.id);
+  assert.equal(s.sellers.viewerState(s.userA.id, s.userA.id), "owner");
+  assert.equal(s.sellers.viewerState(s.userB.id, s.userA.id), "visitor");
+  assert.throws(
+    () =>
+      s.trust.submitReport(s.userA, {
+        targetType: "USER",
+        targetId: s.userA.id,
+        reason: "OTHER",
+      }),
+    (error) => error.code === "SELF_ACTION",
+  );
+  assert.equal(
+    s.trust.submitReport(s.userB, {
+      targetType: "USER",
+      targetId: s.userA.id,
+      reason: "SUSPICIOUS_IDENTITY",
+    }).targetId,
+    s.userA.id,
+  );
+  assert.equal("email" in s.sellers.byId(s.userA.id), false);
+});
+
 test("individual verification is pending, isolated, and cannot self-approve", () => {
   const s = setup();
   const request = s.trust.submitVerification(s.userA, "INDIVIDUAL", s.userA.id);
@@ -93,8 +119,15 @@ test("individual verification is pending, isolated, and cannot self-approve", ()
 
 test("vehicle and dealer verification enforce canonical ownership and fixture authority", () => {
   const s = setup();
+  const before = s.catalog.byId("v3");
+  assert.ok(before);
+  assert.equal(s.trust.publicStatus("VEHICLE", "v3"), "NOT_SUBMITTED");
   const request = s.trust.submitVerification(s.userA, "VEHICLE", "v3");
   assert.equal(request.subjectId, "v3");
+  assert.equal(request.status, "PENDING_REVIEW");
+  assert.equal(s.catalog.byId("v3").id, before.id);
+  assert.equal(s.catalog.byId("v3").title, before.title);
+  assert.equal(s.trust.publicStatus("VEHICLE", "v3"), "NOT_SUBMITTED");
   assert.throws(
     () => s.trust.submitVerification(s.userB, "VEHICLE", "v3"),
     (error) => error.code === "FORBIDDEN",

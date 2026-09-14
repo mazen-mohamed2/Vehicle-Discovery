@@ -33,6 +33,10 @@ export function SiteHeader() {
     !compareHydrating && compareCount > 0
       ? t("nav.compareWithCount").replace("{count}", formatNumber(compareCount, locale))
       : t("nav.compare");
+  const switchLocale = (closeMenu = false) => {
+    setLocale(locale === "ar" ? "en" : "ar");
+    if (closeMenu) setOpen(false);
+  };
 
   const navLinks = [
     { href: "/c2c", label: t("nav.c2c") },
@@ -69,7 +73,7 @@ export function SiteHeader() {
 
         <div className="ms-auto flex items-center gap-1.5">
           <button
-            onClick={() => setLocale(locale === "ar" ? "en" : "ar")}
+            onClick={() => switchLocale()}
             className="hidden sm:inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
             aria-label={t("a11y.switchLanguage")}
           >
@@ -220,7 +224,7 @@ export function SiteHeader() {
             </Button>
             <div className="mt-2 flex items-center justify-between text-sm">
               <button
-                onClick={() => setLocale(locale === "ar" ? "en" : "ar")}
+                onClick={() => switchLocale(true)}
                 className="flex items-center gap-1.5 rounded-lg px-3 py-2 hover:bg-secondary"
                 aria-label={t("a11y.switchLanguage")}
               >

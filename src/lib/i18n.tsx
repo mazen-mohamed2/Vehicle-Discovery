@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { rootDocumentAttributes } from "@/lib/root-document";
 
 export type Locale = "ar" | "en";
 export type Theme = "light" | "dark";
@@ -478,6 +479,8 @@ const communicationEn: Record<keyof typeof communicationAr, string> = {
 
 const trustSafetyAr = {
   "seller.individual": "بائع فردي",
+  "seller.ownProfile": "ملفك العام",
+  "seller.manageProfile": "إدارة الملف الشخصي",
   "seller.memberSince": "عضو منذ",
   "seller.viewProfile": "عرض ملف البائع",
   "seller.listings": "السيارات المعروضة",
@@ -552,6 +555,8 @@ const trustSafetyAr = {
 
 const trustSafetyEn: Record<keyof typeof trustSafetyAr, string> = {
   "seller.individual": "Individual seller",
+  "seller.ownProfile": "Your public profile",
+  "seller.manageProfile": "Manage profile",
   "seller.memberSince": "Member since",
   "seller.viewProfile": "View seller profile",
   "seller.listings": "Active listings",
@@ -1471,13 +1476,11 @@ export function I18nProvider({
 
   useEffect(() => {
     const html = document.documentElement;
-    html.lang = locale;
-    html.dir = locale === "ar" ? "rtl" : "ltr";
-  }, [locale]);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
+    const root = rootDocumentAttributes(locale, theme);
+    html.lang = root.lang;
+    html.dir = root.dir;
+    html.classList.toggle("dark", root.className === "dark");
+  }, [locale, theme]);
 
   const value: Ctx = {
     locale,

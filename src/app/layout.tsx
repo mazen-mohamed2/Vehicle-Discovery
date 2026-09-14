@@ -4,6 +4,7 @@ import { Providers } from "./providers";
 import { cookies } from "next/headers";
 import type { Locale, Theme } from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/server-locale";
+import { rootDocumentAttributes } from "@/lib/root-document";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -50,12 +51,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const cookieStore = await cookies();
   const locale: Locale = cookieStore.get("sd-locale")?.value === "en" ? "en" : "ar";
   const theme: Theme = cookieStore.get("sd-theme")?.value === "light" ? "light" : "dark";
+  const root = rootDocumentAttributes(locale, theme);
   return (
-    <html
-      lang={locale}
-      dir={locale === "ar" ? "rtl" : "ltr"}
-      className={theme === "dark" ? "dark" : ""}
-    >
+    <html {...root}>
       <body>
         <Providers locale={locale} theme={theme}>
           {children}
