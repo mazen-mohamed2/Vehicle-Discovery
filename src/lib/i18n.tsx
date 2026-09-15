@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { rootDocumentAttributes } from "@/lib/root-document";
+import { applyRootDocumentAttributes, rootDocumentAttributes } from "@/lib/root-document";
 
 export type Locale = "ar" | "en";
 export type Theme = "light" | "dark";
@@ -1475,11 +1475,7 @@ export function I18nProvider({
   };
 
   useEffect(() => {
-    const html = document.documentElement;
-    const root = rootDocumentAttributes(locale, theme);
-    html.lang = root.lang;
-    html.dir = root.dir;
-    html.classList.toggle("dark", root.className === "dark");
+    applyRootDocumentAttributes(document.documentElement, rootDocumentAttributes(locale, theme));
   }, [locale, theme]);
 
   const value: Ctx = {

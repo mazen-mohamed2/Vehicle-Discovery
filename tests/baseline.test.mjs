@@ -95,12 +95,13 @@ test("trust and safety routes use centralized accessible domains", async () => {
 });
 
 test("Sprint 10 QA responsive and locale structure is owner-aware and deterministic", async () => {
-  const [seller, conversation, header, layout, i18n, docs] = await Promise.all([
+  const [seller, conversation, header, layout, i18n, rootDocument, docs] = await Promise.all([
     read("src/components/trust-safety/SellerProfile.tsx"),
     read("src/components/communication/ConversationDetail.tsx"),
     read("src/components/site/SiteHeader.tsx"),
     read("src/app/layout.tsx"),
     read("src/lib/i18n.tsx"),
+    read("src/lib/root-document.ts"),
     read("DEVELOPMENT.md"),
   ]);
   assert.match(seller, /viewerState/);
@@ -113,9 +114,19 @@ test("Sprint 10 QA responsive and locale structure is owner-aware and determinis
   assert.match(conversation, /w-full sm:w-auto/);
   assert.match(header, /switchLocale\(true\)/);
   assert.match(header, /aria-label=\{t\("a11y\.switchLanguage"\)\}/);
+  assert.match(header, /data-mobile-locale-control/);
+  assert.match(header, /max-h-\[calc\(100dvh-4rem\)\]/);
+  assert.match(header, /overflow-y-auto/);
+  assert.ok(
+    header.indexOf("data-mobile-locale-control") < header.indexOf("<AuthNavigation mobile"),
+    "mobile locale control must precede authenticated account navigation",
+  );
   assert.match(layout, /rootDocumentAttributes\(locale, theme\)/);
+  assert.match(layout, /rootDocumentBootstrapScript\(root\)/);
   assert.match(i18n, /rootDocumentAttributes\(locale, theme\)/);
   assert.doesNotMatch(i18n, /rtl-enabled/);
+  assert.match(rootDocument, /root\.className = attributes\.className/);
+  assert.doesNotMatch(rootDocument, /rtl-enabled/);
   assert.match(docs, /Listing publication and Vehicle Verification are independent lifecycles/);
 });
 

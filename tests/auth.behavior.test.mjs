@@ -218,7 +218,8 @@ test("authentication-dependent routes are distinguished from public routes", () 
     assert.equal(isAuthenticationDependentPath(path), false, path);
 });
 test("root document locale and theme attributes are deterministic", () => {
-  const { rootDocumentAttributes } = loadTypeScript("src/lib/root-document.ts");
+  const { applyRootDocumentAttributes, rootDocumentAttributes, rootDocumentBootstrapScript } =
+    loadTypeScript("src/lib/root-document.ts");
   assert.deepEqual(rootDocumentAttributes("en", "dark"), {
     lang: "en",
     dir: "ltr",
@@ -230,6 +231,18 @@ test("root document locale and theme attributes are deterministic", () => {
     className: "",
   });
   assert.doesNotMatch(JSON.stringify(rootDocumentAttributes("en", "dark")), /rtl-enabled/);
+
+  const root = { lang: "en", dir: "ltr", className: "dark rtl-enabled" };
+  applyRootDocumentAttributes(root, rootDocumentAttributes("ar", "dark"));
+  assert.deepEqual(root, { lang: "ar", dir: "rtl", className: "dark" });
+  applyRootDocumentAttributes(root, rootDocumentAttributes("en", "dark"));
+  assert.deepEqual(root, { lang: "en", dir: "ltr", className: "dark" });
+
+  const bootstrapRoot = { lang: "ar", dir: "rtl", className: "dark rtl-enabled" };
+  new Function("document", rootDocumentBootstrapScript(rootDocumentAttributes("en", "dark")))({
+    documentElement: bootstrapRoot,
+  });
+  assert.deepEqual(bootstrapRoot, { lang: "en", dir: "ltr", className: "dark" });
 });
 test("remember true uses localStorage and remember false uses sessionStorage", async () => {
   const stores = browser();

@@ -146,6 +146,7 @@ export function SiteHeader() {
             className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg text-foreground hover:bg-secondary"
             aria-label={t("a11y.menu")}
             aria-expanded={open}
+            aria-controls="mobile-navigation"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -153,8 +154,11 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <div className="lg:hidden border-t border-border/60 bg-background">
-          <div className="mx-auto max-w-7xl px-4 py-3 flex flex-col gap-1">
+        <div
+          id="mobile-navigation"
+          className="max-h-[calc(100dvh-4rem)] touch-pan-y overflow-y-auto overscroll-contain border-t border-border/60 bg-background lg:hidden"
+        >
+          <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3">
             {navLinks.map((l) => (
               <Link
                 key={l.href}
@@ -166,6 +170,28 @@ export function SiteHeader() {
                 {l.label}
               </Link>
             ))}
+            <div
+              data-mobile-locale-control
+              className="my-1 flex items-center justify-between border-y border-border/60 py-1 text-sm"
+            >
+              <button
+                type="button"
+                onClick={() => switchLocale(true)}
+                className="flex min-h-10 flex-1 items-center gap-2 rounded-lg px-3 py-2 font-medium hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={t("a11y.switchLanguage")}
+              >
+                <Globe className="h-4 w-4" />
+                {locale === "ar" ? "English" : "العربية"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={t("a11y.toggleTheme")}
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+            </div>
             <Link
               href="/favorites"
               aria-label={favoritesLabel}
@@ -222,23 +248,6 @@ export function SiteHeader() {
             >
               {t("nav.sell")}
             </Button>
-            <div className="mt-2 flex items-center justify-between text-sm">
-              <button
-                onClick={() => switchLocale(true)}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 hover:bg-secondary"
-                aria-label={t("a11y.switchLanguage")}
-              >
-                <Globe className="h-4 w-4" />
-                {locale === "ar" ? "English" : "العربية"}
-              </button>
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 hover:bg-secondary"
-                aria-label={t("a11y.toggleTheme")}
-              >
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </button>
-            </div>
           </div>
         </div>
       )}
