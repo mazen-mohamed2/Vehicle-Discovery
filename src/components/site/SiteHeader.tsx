@@ -13,6 +13,7 @@ import { formatNumber } from "@/lib/locale";
 import { AuthNavigation } from "@/components/auth/AuthNavigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/hooks/use-notifications";
+import { listingCategories, listingCategoryRegistry } from "@/lib/marketplace-listing";
 
 export function SiteHeader() {
   const { t, locale, setLocale, theme, setTheme } = useI18n();
@@ -39,6 +40,7 @@ export function SiteHeader() {
   };
 
   const navLinks = [
+    { href: "/vehicles", label: t("nav.marketplace") },
     { href: "/c2c", label: t("nav.c2c") },
     { href: "/dealers", label: t("nav.dealers") },
     { href: "/import", label: t("nav.import") },
@@ -55,14 +57,14 @@ export function SiteHeader() {
           <span className="text-lg font-black tracking-tight">{t("brand.name")}</span>
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-1">
+        <nav className="hidden xl:flex items-center gap-1">
           {navLinks.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               aria-current={pathname === l.href ? "page" : undefined}
               className={cn(
-                "rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+                "rounded-lg px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
                 pathname === l.href && "bg-secondary text-foreground",
               )}
             >
@@ -97,7 +99,7 @@ export function SiteHeader() {
             )}
           >
             <Heart className="h-4 w-4" />
-            <span className="hidden xl:inline">{t("nav.favorites")}</span>
+            <span className="hidden 2xl:inline">{t("nav.favorites")}</span>
             {!favoritesHydrating && <span>({formatNumber(favoritesCount, locale)})</span>}
           </Link>
           <Link
@@ -110,7 +112,7 @@ export function SiteHeader() {
             )}
           >
             <Scale className="h-4 w-4" />
-            <span className="hidden xl:inline">{t("nav.compare")}</span>
+            <span className="hidden 2xl:inline">{t("nav.compare")}</span>
             {!compareHydrating && compareCount > 0 && (
               <span>({formatNumber(compareCount, locale)})</span>
             )}
@@ -143,7 +145,7 @@ export function SiteHeader() {
 
           <button
             onClick={() => setOpen((o) => !o)}
-            className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg text-foreground hover:bg-secondary"
+            className="xl:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg text-foreground hover:bg-secondary"
             aria-label={t("a11y.menu")}
             aria-expanded={open}
             aria-controls="mobile-navigation"
@@ -156,7 +158,7 @@ export function SiteHeader() {
       {open && (
         <div
           id="mobile-navigation"
-          className="max-h-[calc(100dvh-4rem)] touch-pan-y overflow-y-auto overscroll-contain border-t border-border/60 bg-background lg:hidden"
+          className="max-h-[calc(100dvh-4rem)] touch-pan-y overflow-y-auto overscroll-contain border-t border-border/60 bg-background xl:hidden"
         >
           <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3">
             {navLinks.map((l) => (
@@ -170,6 +172,18 @@ export function SiteHeader() {
                 {l.label}
               </Link>
             ))}
+            <div className="flex flex-wrap gap-1 px-2 pb-1" aria-label={t("category.choose")}>
+              {listingCategories.map((category) => (
+                <Link
+                  key={category}
+                  href={`/vehicles?category=${category}`}
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {t(listingCategoryRegistry[category].labelKey)}
+                </Link>
+              ))}
+            </div>
             <div
               data-mobile-locale-control
               className="my-1 flex items-center justify-between border-y border-border/60 py-1 text-sm"

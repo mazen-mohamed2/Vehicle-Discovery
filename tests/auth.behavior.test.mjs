@@ -453,8 +453,8 @@ test("scoped favorites and compare are isolated and preserve maximum compare siz
     (await favoritesService.list("user:user-a")).map((v) => v.listingId),
     ["v2"],
   );
-  await compareService.replace("dealer:dealer-a", ["1", "2", "3", "4", "5"]);
-  assert.deepEqual(await compareService.list("dealer:dealer-a"), ["1", "2", "3", "4"]);
+  await compareService.replace("dealer:dealer-a", ["v1", "v2", "v3", "v4", "v5"]);
+  assert.deepEqual(await compareService.list("dealer:dealer-a"), ["v1", "v2", "v3", "v4"]);
   assert.deepEqual(await compareService.list("guest"), []);
 });
 test("scoped storage failures reject instead of claiming persistence", () => {

@@ -8,8 +8,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { authStorageScope } from "@/lib/storage-scope";
 import {
   compareService,
+  canCompareListing,
   MAX_COMPARE_VEHICLES,
   normalizeCompareIds,
+  sameCategoryCompareIds,
 } from "@/services/compare.service";
 
 export function useCompare() {
@@ -34,7 +36,10 @@ export function useCompare() {
     onMutate: async (nextIds: string[]) => {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<string[]>(queryKey) ?? [];
-      queryClient.setQueryData<string[]>(queryKey, normalizeCompareIds(nextIds));
+      queryClient.setQueryData<string[]>(
+        queryKey,
+        sameCategoryCompareIds(normalizeCompareIds(nextIds)),
+      );
       return { previous };
     },
     onError: (_error, _variables, context) => queryClient.setQueryData(queryKey, context?.previous),
@@ -44,9 +49,11 @@ export function useCompare() {
     (listingId: string) => comparedIds.includes(listingId),
     [comparedIds],
   );
-  const replaceCompare = (ids: string[]) => mutation.mutate(normalizeCompareIds(ids));
+  const replaceCompare = (ids: string[]) =>
+    mutation.mutate(sameCategoryCompareIds(normalizeCompareIds(ids)));
   const addToCompare = (listingId: string) => {
     if (isCompared(listingId)) return true;
+    if (!canCompareListing(comparedIds, listingId)) return false;
     if (comparedIds.length >= MAX_COMPARE_VEHICLES) return false;
     replaceCompare([...comparedIds, listingId]);
     return true;
@@ -62,6 +69,7 @@ export function useCompare() {
     scope,
     isHydrating: !hydrationReady || auth.isHydrating || query.isPending,
     isCompared,
+    canCompareListing: (listingId: string) => canCompareListing(comparedIds, listingId),
     addToCompare,
     removeFromCompare,
     toggleCompare,

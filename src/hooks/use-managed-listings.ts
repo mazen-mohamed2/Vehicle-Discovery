@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { queryKeys } from "@/lib/query-keys";
 import { authStorageScope } from "@/lib/storage-scope";
 import type { ManagedListing } from "@/lib/listing";
+import type { ListingCategory } from "@/lib/marketplace-listing";
 import { listingOwner, managedListingsService } from "@/services/managed-listings.service";
 
 export function useManagedListings(id?: string) {
@@ -43,7 +44,8 @@ export function useManagedListings(id?: string) {
     await client.invalidateQueries({ queryKey: ["listings"] });
   };
   const create = useMutation({
-    mutationFn: async () => managedListingsService.createDraft(owner!),
+    mutationFn: async (category: ListingCategory = "CAR") =>
+      managedListingsService.createDraft(owner!, category),
     onSuccess: refresh,
   });
   const update = useMutation({

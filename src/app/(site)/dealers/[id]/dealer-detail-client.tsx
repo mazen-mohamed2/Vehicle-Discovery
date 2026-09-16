@@ -40,13 +40,23 @@ import { useAuth } from "@/hooks/use-auth";
 import { ReportDialog } from "@/components/trust-safety/ReportDialog";
 import { TrustBadge } from "@/components/trust-safety/TrustBadge";
 import { trustSafetyService } from "@/services/trust-safety.service";
+import {
+  listingCategories,
+  type BoatType,
+  type MotorcycleType,
+  type PropulsionType,
+} from "@/lib/marketplace-listing";
 
 const defaultFilters: DealerInventoryFilters = {
   search: "",
+  category: "",
   make: "",
   bodyType: "",
   fuel: "",
   transmission: "",
+  motorcycleType: "",
+  boatType: "",
+  propulsion: "",
   sort: "newest",
 };
 
@@ -74,9 +84,61 @@ export function DealerDetailClient({ id }: { id: string }) {
     () => filterDealerInventory(inventory, { ...filters, search: deferredSearch }),
     [deferredSearch, filters, inventory],
   );
-  const makes = useMemo(() => [...new Set(inventory.map((item) => item.make))].sort(), [inventory]);
+  const makes = useMemo(
+    () =>
+      [
+        ...new Set(
+          inventory
+            .filter((item) => !filters.category || item.category === filters.category)
+            .map((item) => item.specs.make),
+        ),
+      ].sort(),
+    [inventory, filters.category],
+  );
   const bodyTypes = useMemo(
-    () => [...new Set(inventory.flatMap((item) => (item.bodyType ? [item.bodyType] : [])))].sort(),
+    () =>
+      [
+        ...new Set(
+          inventory.flatMap((item) =>
+            item.category === "CAR" && item.specs.bodyType ? [item.specs.bodyType] : [],
+          ),
+        ),
+      ].sort(),
+    [inventory],
+  );
+  const motorcycleTypes = useMemo(
+    () =>
+      [
+        ...new Set(
+          inventory.flatMap((item) =>
+            item.category === "MOTORCYCLE" && item.specs.motorcycleType
+              ? [item.specs.motorcycleType]
+              : [],
+          ),
+        ),
+      ].sort(),
+    [inventory],
+  );
+  const boatTypes = useMemo(
+    () =>
+      [
+        ...new Set(
+          inventory.flatMap((item) =>
+            item.category === "BOAT" && item.specs.boatType ? [item.specs.boatType] : [],
+          ),
+        ),
+      ].sort(),
+    [inventory],
+  );
+  const propulsions = useMemo(
+    () =>
+      [
+        ...new Set(
+          inventory.flatMap((item) =>
+            item.category === "BOAT" && item.specs.propulsion ? [item.specs.propulsion] : [],
+          ),
+        ),
+      ].sort(),
     [inventory],
   );
 
@@ -250,40 +312,102 @@ export function DealerDetailClient({ id }: { id: string }) {
               />
             </label>
             <InventorySelect
+              label={t("category.choose")}
+              value={filters.category ?? ""}
+              onChange={(value) =>
+                setFilters((current) => ({
+                  ...current,
+                  category: value as DealerInventoryFilters["category"],
+                  make: "",
+                  bodyType: "",
+                  fuel: "",
+                  transmission: "",
+                  motorcycleType: "",
+                  boatType: "",
+                  propulsion: "",
+                  sort:
+                    value === "BOAT" && current.sort === "mileage-asc" ? "newest" : current.sort,
+                }))
+              }
+              options={[...listingCategories]}
+              labels={(value) => t(`category.${value}`)}
+              allLabel={t("category.all")}
+            />
+            <InventorySelect
               label={t("form.make")}
               value={filters.make}
               onChange={(value) => updateFilter("make", value)}
               options={makes}
               allLabel={t("discovery.all")}
             />
-            <InventorySelect
-              label={t("vehicle.bodyType")}
-              value={filters.bodyType}
-              onChange={(value) => updateFilter("bodyType", value)}
-              options={bodyTypes}
-              allLabel={t("discovery.all")}
-            />
-            <InventorySelect
-              label={t("vehicle.fuel")}
-              value={filters.fuel}
-              onChange={(value) => updateFilter("fuel", value as "" | FuelType)}
-              options={["gasoline", "diesel", "hybrid", "electric"]}
-              labels={(value) => t(`fuel.${value}`)}
-              allLabel={t("discovery.all")}
-            />
-            <InventorySelect
-              label={t("vehicle.transmission")}
-              value={filters.transmission}
-              onChange={(value) => updateFilter("transmission", value as "" | Transmission)}
-              options={["automatic", "manual"]}
-              labels={(value) => t(`transmission.${value}`)}
-              allLabel={t("discovery.all")}
-            />
+            {(!filters.category || filters.category === "CAR") && (
+              <InventorySelect
+                label={t("vehicle.bodyType")}
+                value={filters.bodyType}
+                onChange={(value) => updateFilter("bodyType", value)}
+                options={bodyTypes}
+                allLabel={t("discovery.all")}
+              />
+            )}
+            {filters.category === "MOTORCYCLE" && (
+              <InventorySelect
+                label={t("category.motorcycleType")}
+                value={filters.motorcycleType ?? ""}
+                onChange={(value) => updateFilter("motorcycleType", value as "" | MotorcycleType)}
+                options={motorcycleTypes}
+                labels={(value) => t(`motorcycleType.${value}`)}
+                allLabel={t("discovery.all")}
+              />
+            )}
+            {filters.category === "BOAT" && (
+              <>
+                <InventorySelect
+                  label={t("category.boatType")}
+                  value={filters.boatType ?? ""}
+                  onChange={(value) => updateFilter("boatType", value as "" | BoatType)}
+                  options={boatTypes}
+                  labels={(value) => t(`boatType.${value}`)}
+                  allLabel={t("discovery.all")}
+                />
+                <InventorySelect
+                  label={t("category.propulsion")}
+                  value={filters.propulsion ?? ""}
+                  onChange={(value) => updateFilter("propulsion", value as "" | PropulsionType)}
+                  options={propulsions}
+                  labels={(value) => t(`propulsion.${value}`)}
+                  allLabel={t("discovery.all")}
+                />
+              </>
+            )}
+            {(!filters.category || filters.category === "CAR") && (
+              <InventorySelect
+                label={t("vehicle.fuel")}
+                value={filters.fuel}
+                onChange={(value) => updateFilter("fuel", value as "" | FuelType)}
+                options={["gasoline", "diesel", "hybrid", "electric"]}
+                labels={(value) => t(`fuel.${value}`)}
+                allLabel={t("discovery.all")}
+              />
+            )}
+            {(!filters.category || filters.category === "CAR") && (
+              <InventorySelect
+                label={t("vehicle.transmission")}
+                value={filters.transmission}
+                onChange={(value) => updateFilter("transmission", value as "" | Transmission)}
+                options={["automatic", "manual"]}
+                labels={(value) => t(`transmission.${value}`)}
+                allLabel={t("discovery.all")}
+              />
+            )}
             <InventorySelect
               label={t("discovery.sort")}
               value={filters.sort}
               onChange={(value) => updateFilter("sort", value as DealerInventorySort)}
-              options={["newest", "price-asc", "price-desc", "mileage-asc"]}
+              options={
+                filters.category === "BOAT"
+                  ? ["newest", "price-asc", "price-desc"]
+                  : ["newest", "price-asc", "price-desc", "mileage-asc"]
+              }
               labels={(value) =>
                 t(
                   `sort.${value === "price-asc" ? "priceAsc" : value === "price-desc" ? "priceDesc" : value === "mileage-asc" ? "mileageAsc" : "newest"}`,

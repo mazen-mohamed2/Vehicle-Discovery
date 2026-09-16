@@ -8,14 +8,31 @@ import { parseDiscoveryParams } from "@/lib/vehicle-discovery";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const locale = await getRequestLocale();
-  const [title, description] = pageMetadata.vehicles[locale];
+  const raw = await searchParams;
+  const category = parseDiscoveryParams(
+    new URLSearchParams(typeof raw.category === "string" ? { category: raw.category } : {}),
+  ).category;
+  const names =
+    locale === "ar"
+      ? { CAR: "السيارات", MOTORCYCLE: "الدراجات النارية", BOAT: "القوارب" }
+      : { CAR: "Cars", MOTORCYCLE: "Motorcycles", BOAT: "Boats" };
+  const [defaultTitle, defaultDescription] = pageMetadata.vehicles[locale];
+  const title = category
+    ? `${names[category]} — ${locale === "ar" ? "سهلة درج" : "Sahla Daraj"}`
+    : defaultTitle;
+  const description = category
+    ? locale === "ar"
+      ? `تصفح إعلانات ${names[category]} من الأفراد والوكلاء.`
+      : `Browse ${names[category].toLowerCase()} listed by individuals and dealers.`
+    : defaultDescription;
+  const canonical = category ? `/vehicles?category=${category}` : "/vehicles";
   return {
     title,
     description,
-    alternates: { canonical: "/vehicles" },
-    openGraph: { title, description, url: "/vehicles" },
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical },
   };
 }
 

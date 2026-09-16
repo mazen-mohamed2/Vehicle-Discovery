@@ -11,7 +11,7 @@ function similarTo(agencyId: string, limit: number): AgencyRecommendation[] {
   const sourceInventory = catalog.filter(
     (listing) => listing.sellerType === "agency" && listing.sellerId === agencyId,
   );
-  const sourceBrands = new Set(sourceInventory.map((listing) => listing.make));
+  const sourceBrands = new Set(sourceInventory.map((listing) => listing.specs.make));
 
   return mockAgencies
     .filter((agency) => agency.id !== agencyId)
@@ -19,8 +19,8 @@ function similarTo(agencyId: string, limit: number): AgencyRecommendation[] {
       const inventory = catalog.filter(
         (listing) => listing.sellerType === "agency" && listing.sellerId === agency.id,
       );
-      const sharedBrands = [...new Set(inventory.map((listing) => listing.make))].filter((brand) =>
-        sourceBrands.has(brand),
+      const sharedBrands = [...new Set(inventory.map((listing) => listing.specs.make))].filter(
+        (brand) => sourceBrands.has(brand),
       );
       const inventoryDistance = Math.abs(inventory.length - sourceInventory.length);
       return {

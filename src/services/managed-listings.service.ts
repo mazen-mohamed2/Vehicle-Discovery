@@ -1,4 +1,5 @@
 import type { AuthUser } from "@/lib/auth";
+import type { ListingCategory, CategorySpecs } from "@/lib/marketplace-listing";
 import { authStorageScope, type StorageScope } from "@/lib/storage-scope";
 import {
   assertPublishable,
@@ -18,6 +19,7 @@ import {
 const PREFIX = "sd-owned-listings";
 const PUBLIC_KEY = "sd-published-listings";
 const EVENT = "sd-listings-change";
+export const LISTING_STORAGE_SCHEMA_VERSION = 2;
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const sessionImages = new Map<string, ListingImage[]>();
 
@@ -33,18 +35,104 @@ export function listingOwner(user: AuthUser | null | undefined): ListingOwner {
 }
 const key = (scope: StorageScope) => `${PREFIX}:${scope}`;
 const storage = () => (typeof window === "undefined" ? null : window.localStorage);
-function parse(raw: string | null): ManagedListing[] {
+const object = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+function legacyCarSpecs(item: Record<string, unknown>): CategorySpecs["CAR"] {
+  if (
+    typeof item.make !== "string" ||
+    typeof item.model !== "string" ||
+    typeof item.trim !== "string" ||
+    typeof item.bodyType !== "string" ||
+    typeof item.drivetrain !== "string" ||
+    typeof item.exteriorColor !== "string" ||
+    typeof item.interiorColor !== "string" ||
+    !["", "automatic", "manual"].includes(String(item.transmission)) ||
+    !["", "gasoline", "diesel", "hybrid", "electric"].includes(String(item.fuelType)) ||
+    !["none", "declared", "unknown"].includes(String(item.accidentHistory)) ||
+    !["local", "imported", "unknown"].includes(String(item.importStatus)) ||
+    !["active", "expired", "none", "unknown"].includes(String(item.warrantyStatus)) ||
+    typeof item.serviceHistoryAvailable !== "boolean"
+  )
+    throw new ListingServiceError("STORAGE_READ_FAILED");
+  return {
+    make: item.make,
+    model: item.model,
+    trim: item.trim,
+    bodyType: item.bodyType,
+    mileage: item.mileage as number | undefined,
+    transmission: item.transmission as CategorySpecs["CAR"]["transmission"],
+    fuelType: item.fuelType as CategorySpecs["CAR"]["fuelType"],
+    drivetrain: item.drivetrain,
+    exteriorColor: item.exteriorColor,
+    interiorColor: item.interiorColor,
+    engineSize: item.engineSize as number | undefined,
+    horsepower: item.horsepower as number | undefined,
+    doors: item.doors as number | undefined,
+    seats: item.seats as number | undefined,
+    accidentHistory: item.accidentHistory as CategorySpecs["CAR"]["accidentHistory"],
+    importStatus: item.importStatus as CategorySpecs["CAR"]["importStatus"],
+    warrantyStatus: item.warrantyStatus as CategorySpecs["CAR"]["warrantyStatus"],
+    serviceHistoryAvailable: item.serviceHistoryAvailable,
+    numberOfKeys: item.numberOfKeys as number | undefined,
+    vin: item.vin as string | undefined,
+    plateNumber: item.plateNumber as string | undefined,
+  };
+}
+
+function parse(raw: string | null, storageKey?: string): ManagedListing[] {
   if (!raw) return [];
   try {
     const value: unknown = JSON.parse(raw);
-    return Array.isArray(value) ? (value as ManagedListing[]) : [];
+    const legacy = Array.isArray(value);
+    const records = legacy
+      ? value
+      : object(value) && value.schemaVersion === LISTING_STORAGE_SCHEMA_VERSION
+        ? value.records
+        : null;
+    if (!Array.isArray(records)) throw new ListingServiceError("STORAGE_READ_FAILED");
+    const migrated = records.map((item: unknown) => {
+      if (
+        !object(item) ||
+        typeof item.id !== "string" ||
+        !item.id ||
+        typeof item.sellerId !== "string" ||
+        !item.sellerId ||
+        !["user", "dealer"].includes(String(item.sellerRole)) ||
+        typeof item.sellerName !== "string" ||
+        !["draft", "pending", "published", "sold", "archived"].includes(String(item.status)) ||
+        typeof item.createdAt !== "string" ||
+        typeof item.updatedAt !== "string" ||
+        typeof item.currency !== "string" ||
+        typeof item.location !== "string" ||
+        typeof item.description !== "string" ||
+        !Array.isArray(item.images) ||
+        !object(item.declarations)
+      )
+        throw new ListingServiceError("STORAGE_READ_FAILED");
+      const result = legacy ? { ...item, category: "CAR", specs: legacyCarSpecs(item) } : item;
+      if (!["CAR", "MOTORCYCLE", "BOAT"].includes(String(result.category)) || !object(result.specs))
+        throw new ListingServiceError("STORAGE_READ_FAILED");
+      try {
+        toPublicVehicle(result as unknown as ManagedListing);
+      } catch {
+        throw new ListingServiceError("STORAGE_READ_FAILED");
+      }
+      return result as unknown as ManagedListing;
+    });
+    if (legacy && storageKey && storage())
+      storage()!.setItem(
+        storageKey,
+        JSON.stringify({ schemaVersion: LISTING_STORAGE_SCHEMA_VERSION, records: migrated }),
+      );
+    return migrated;
   } catch {
     throw new ListingServiceError("STORAGE_READ_FAILED");
   }
 }
 function read(scope: StorageScope) {
   try {
-    return parse(storage()?.getItem(key(scope)) ?? null).map((listing) => ({
+    return parse(storage()?.getItem(key(scope)) ?? null, key(scope)).map((listing) => ({
       ...listing,
       images: [...listing.images, ...(sessionImages.get(`${scope}:${listing.id}`) ?? [])],
     }));
@@ -69,7 +157,10 @@ function write(scope: StorageScope, listings: ManagedListing[]) {
         .filter((image) => !image.temporary)
         .map(({ previewUrl: _preview, temporary: _temporary, ...image }) => image),
     }));
-    target.setItem(key(scope), JSON.stringify(safe));
+    target.setItem(
+      key(scope),
+      JSON.stringify({ schemaVersion: LISTING_STORAGE_SCHEMA_VERSION, records: safe }),
+    );
     window.dispatchEvent(new CustomEvent(EVENT, { detail: scope }));
   } catch {
     throw new ListingServiceError("STORAGE_WRITE_FAILED");
@@ -79,13 +170,19 @@ function writePublic(owner: ListingOwner, listings: ManagedListing[]) {
   const target = storage();
   if (!target) return;
   try {
-    const otherAccounts = parse(target.getItem(PUBLIC_KEY)).filter(
+    const otherAccounts = parse(target.getItem(PUBLIC_KEY), PUBLIC_KEY).filter(
       (item) => item.sellerId !== owner.id,
     );
     const published = listings
       .filter((item) => item.status === "published")
       .map((item) => ({ ...item, images: item.images.filter((image) => !image.temporary) }));
-    target.setItem(PUBLIC_KEY, JSON.stringify([...otherAccounts, ...published]));
+    target.setItem(
+      PUBLIC_KEY,
+      JSON.stringify({
+        schemaVersion: LISTING_STORAGE_SCHEMA_VERSION,
+        records: [...otherAccounts, ...published],
+      }),
+    );
   } catch {
     throw new ListingServiceError("STORAGE_WRITE_FAILED");
   }
@@ -97,6 +194,7 @@ function owned(owner: ListingOwner, id: string) {
   return listing;
 }
 function save(owner: ListingOwner, next: ManagedListing) {
+  toPublicVehicle(next);
   const values = read(owner.scope);
   const index = values.findIndex((item) => item.id === next.id);
   const result =
@@ -105,7 +203,7 @@ function save(owner: ListingOwner, next: ManagedListing) {
   writePublic(owner, result);
   return next;
 }
-function base(owner: ListingOwner): ManagedListing {
+function base(owner: ListingOwner, category: ListingCategory = "CAR"): ManagedListing {
   const now = new Date().toISOString();
   return {
     id: `listing_${crypto.randomUUID()}`,
@@ -119,6 +217,39 @@ function base(owner: ListingOwner): ManagedListing {
     currentStep: "basics",
     completionPercentage: 0,
     version: 1,
+    category,
+    specs:
+      category === "CAR"
+        ? {
+            make: "",
+            model: "",
+            trim: "",
+            bodyType: "",
+            transmission: "",
+            fuelType: "",
+            drivetrain: "",
+            exteriorColor: "",
+            interiorColor: "",
+            accidentHistory: "unknown",
+            importStatus: "unknown",
+            warrantyStatus: "unknown",
+            serviceHistoryAvailable: false,
+          }
+        : category === "MOTORCYCLE"
+          ? {
+              make: "",
+              model: "",
+              motorcycleType: "",
+              transmission: "",
+            }
+          : {
+              make: "",
+              model: "",
+              boatType: "",
+              lengthMeters: undefined,
+              propulsion: "",
+              hullMaterial: "",
+            },
     make: "",
     model: "",
     trim: "",
@@ -164,8 +295,10 @@ const transition = (listing: ManagedListing, allowed: ListingStatus[], status: L
 };
 
 export const managedListingsService = {
-  createDraft(owner: ListingOwner) {
-    return save(owner, base(owner));
+  createDraft(owner: ListingOwner, category: ListingCategory = "CAR") {
+    if (!["CAR", "MOTORCYCLE", "BOAT"].includes(category))
+      throw new ListingServiceError("VALIDATION_ERROR", { category: "invalid" });
+    return save(owner, base(owner, category));
   },
   getOwnedListings(owner: ListingOwner) {
     return read(owner.scope);
@@ -175,10 +308,47 @@ export const managedListingsService = {
   },
   updateDraft(owner: ListingOwner, id: string, patch: Partial<ManagedListing>) {
     const current = owned(owner, id);
+    if (patch.category && patch.category !== current.category)
+      throw new ListingServiceError("VALIDATION_ERROR", { category: "immutable" });
     const next = {
       ...current,
       ...patch,
       id: current.id,
+      category: current.category,
+      specs:
+        patch.specs ??
+        (current.category === "CAR"
+          ? {
+              ...current.specs,
+              ...Object.fromEntries(
+                [
+                  "make",
+                  "model",
+                  "trim",
+                  "bodyType",
+                  "mileage",
+                  "transmission",
+                  "fuelType",
+                  "drivetrain",
+                  "exteriorColor",
+                  "interiorColor",
+                  "engineSize",
+                  "horsepower",
+                  "doors",
+                  "seats",
+                  "accidentHistory",
+                  "importStatus",
+                  "warrantyStatus",
+                  "serviceHistoryAvailable",
+                  "numberOfKeys",
+                  "vin",
+                  "plateNumber",
+                ]
+                  .filter((field) => field in patch)
+                  .map((field) => [field, patch[field as keyof ManagedListing]]),
+              ),
+            }
+          : current.specs),
       sellerId: current.sellerId,
       sellerRole: current.sellerRole,
       sellerName: current.sellerName,
@@ -213,7 +383,7 @@ export const managedListingsService = {
   },
   duplicateListing(owner: ListingOwner, id: string) {
     const source = owned(owner, id);
-    const fresh = base(owner);
+    const fresh = base(owner, source.category);
     const duplicate = {
       ...fresh,
       ...source,
@@ -267,7 +437,7 @@ export const managedListingsService = {
   },
   publicListings() {
     try {
-      return parse(storage()?.getItem(PUBLIC_KEY) ?? null)
+      return parse(storage()?.getItem(PUBLIC_KEY) ?? null, PUBLIC_KEY)
         .filter((item) => item.status === "published")
         .map(toPublicVehicle);
     } catch {

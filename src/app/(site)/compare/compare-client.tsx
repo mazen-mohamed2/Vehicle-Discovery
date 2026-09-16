@@ -5,15 +5,17 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Car, Share2, Trash2, X } from "lucide-react";
+import { ImageOff, Scale, Share2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useCompare } from "@/hooks/use-compare";
 import { useI18n } from "@/lib/i18n";
 import { listingsService } from "@/services/listings.service";
 import { queryKeys } from "@/lib/query-keys";
 import { createCompareQuery, parseCompareUrlIds } from "@/lib/compare-url";
+import { sameCategoryCompareIds } from "@/services/compare.service";
 import { formatCurrency, formatMileage, formatYear } from "@/lib/locale";
 import type { VehicleListing } from "@/lib/types";
+import { carEngineDisplay, listingCategoryRegistry } from "@/lib/marketplace-listing";
 import { Button } from "@/components/ui/button";
 import { VehicleGridSkeleton } from "@/components/marketplace/CollectionStates";
 import { cn } from "@/lib/utils";
@@ -73,7 +75,7 @@ export function CompareClient() {
       else return;
     }
     if (raw !== null && raw !== lastUrlValue.current) {
-      const valid = parseCompareUrlIds(raw, validIds);
+      const valid = sameCategoryCompareIds(parseCompareUrlIds(raw, validIds));
       lastUrlValue.current = valid.join(",");
       if (valid.join(",") !== comparedIds.join(",")) replaceCompare(valid);
       if (raw !== valid.join(",")) updateUrl(valid);
@@ -93,8 +95,9 @@ export function CompareClient() {
   ]);
 
   const setComparison = (ids: string[]) => {
-    replaceCompare(ids);
-    updateUrl(ids);
+    const valid = sameCategoryCompareIds(ids);
+    replaceCompare(valid);
+    updateUrl(valid);
   };
   const remove = (id: string) => {
     const next = comparedIds.filter((item) => item !== id);
@@ -186,7 +189,7 @@ export function CompareClient() {
                             className="object-cover"
                           />
                         ) : (
-                          <Car className="absolute inset-0 m-auto h-10 w-10 text-muted-foreground" />
+                          <ImageOff className="absolute inset-0 m-auto h-10 w-10 text-muted-foreground" />
                         )}
                       </div>
                       <Link
@@ -209,7 +212,7 @@ export function CompareClient() {
                 </tr>
               </thead>
               <tbody>
-                {comparisonRows(t, locale).map((row) => (
+                {comparisonRows(t, locale, vehicles[0].category).map((row) => (
                   <ComparisonRow
                     key={row.label}
                     label={row.label}
@@ -236,7 +239,7 @@ export function CompareClient() {
     );
   }
   function ScaleIcon() {
-    return <Car className="h-10 w-10 text-primary" />;
+    return <Scale className="h-10 w-10 text-primary" />;
   }
 
   function OneVehicleState({
@@ -261,7 +264,7 @@ export function CompareClient() {
               className="object-cover"
             />
           ) : (
-            <Car className="absolute inset-0 m-auto h-10 w-10 text-muted-foreground" />
+            <ImageOff className="absolute inset-0 m-auto h-10 w-10 text-muted-foreground" />
           )}
         </div>
         <h2 id="one-vehicle-title" className="mt-4 text-lg font-bold">
@@ -285,32 +288,118 @@ export function CompareClient() {
   }
 }
 
-function comparisonRows(t: (key: string) => string, locale: "ar" | "en") {
-  return [
+function comparisonRows(
+  t: (key: string) => string,
+  locale: "ar" | "en",
+  category: VehicleListing["category"],
+) {
+  const common = [
     {
       label: t("compare.price"),
       value: (v: VehicleListing) => formatCurrency(v.price, v.currency, locale),
     },
-    { label: t("form.make"), value: (v: VehicleListing) => v.make },
-    { label: t("form.model"), value: (v: VehicleListing) => v.model },
+    {
+      label: t("category.kind"),
+      value: (v: VehicleListing) => t(listingCategoryRegistry[v.category].labelKey),
+    },
+    { label: t("form.make"), value: (v: VehicleListing) => v.specs.make },
+    { label: t("form.model"), value: (v: VehicleListing) => v.specs.model },
     { label: t("form.year"), value: (v: VehicleListing) => formatYear(v.year, locale) },
-    {
-      label: t("card.km"),
-      value: (v: VehicleListing) => formatMileage(v.mileage, locale, t("card.km")),
-    },
-    {
-      label: t("vehicle.transmission"),
-      value: (v: VehicleListing) => t(`transmission.${v.transmission}`),
-    },
-    { label: t("vehicle.fuel"), value: (v: VehicleListing) => t(`fuel.${v.fuel}`) },
-    {
-      label: t("vehicle.engine"),
-      value: (v: VehicleListing) => v.engine ?? t("vehicle.notAvailable"),
-    },
-    {
-      label: t("vehicle.bodyType"),
-      value: (v: VehicleListing) => v.bodyType ?? t("vehicle.notAvailable"),
-    },
+  ];
+  const categoryRows =
+    category === "CAR"
+      ? [
+          {
+            label: t("card.km"),
+            value: (v: VehicleListing) =>
+              v.category === "CAR"
+                ? formatMileage(v.specs.mileage ?? 0, locale, t("card.km"))
+                : t("vehicle.notAvailable"),
+          },
+          {
+            label: t("vehicle.transmission"),
+            value: (v: VehicleListing) =>
+              v.category === "CAR"
+                ? t(`transmission.${v.specs.transmission}`)
+                : t("vehicle.notAvailable"),
+          },
+          {
+            label: t("vehicle.fuel"),
+            value: (v: VehicleListing) =>
+              v.category === "CAR" ? t(`fuel.${v.specs.fuelType}`) : t("vehicle.notAvailable"),
+          },
+          {
+            label: t("vehicle.engine"),
+            value: (v: VehicleListing) =>
+              v.category === "CAR"
+                ? (carEngineDisplay(v) ?? t("vehicle.notAvailable"))
+                : t("vehicle.notAvailable"),
+          },
+          {
+            label: t("vehicle.bodyType"),
+            value: (v: VehicleListing) =>
+              v.category === "CAR"
+                ? v.specs.bodyType || t("vehicle.notAvailable")
+                : t("vehicle.notAvailable"),
+          },
+        ]
+      : category === "MOTORCYCLE"
+        ? [
+            {
+              label: t("card.km"),
+              value: (v: VehicleListing) =>
+                v.category === "MOTORCYCLE"
+                  ? formatMileage(v.specs.mileage ?? 0, locale, t("card.km"))
+                  : t("vehicle.notAvailable"),
+            },
+            {
+              label: t("category.motorcycleType"),
+              value: (v: VehicleListing) =>
+                v.category === "MOTORCYCLE"
+                  ? t(`motorcycleType.${v.specs.motorcycleType}`)
+                  : t("vehicle.notAvailable"),
+            },
+            {
+              label: t("category.engineCapacity"),
+              value: (v: VehicleListing) =>
+                v.category === "MOTORCYCLE"
+                  ? `${v.specs.engineCapacityCc ?? "—"} ${t("category.cc")}`
+                  : t("vehicle.notAvailable"),
+            },
+          ]
+        : [
+            {
+              label: t("category.boatType"),
+              value: (v: VehicleListing) =>
+                v.category === "BOAT"
+                  ? t(`boatType.${v.specs.boatType}`)
+                  : t("vehicle.notAvailable"),
+            },
+            {
+              label: t("category.length"),
+              value: (v: VehicleListing) =>
+                v.category === "BOAT"
+                  ? `${v.specs.lengthMeters ?? "—"} ${t("category.meters")}`
+                  : t("vehicle.notAvailable"),
+            },
+            {
+              label: t("category.propulsion"),
+              value: (v: VehicleListing) =>
+                v.category === "BOAT"
+                  ? t(`propulsion.${v.specs.propulsion}`)
+                  : t("vehicle.notAvailable"),
+            },
+            {
+              label: t("category.engineHours"),
+              value: (v: VehicleListing) =>
+                v.category === "BOAT"
+                  ? String(v.specs.engineHours ?? "—")
+                  : t("vehicle.notAvailable"),
+            },
+          ];
+  return [
+    ...common,
+    ...categoryRows,
     {
       label: t("vehicle.condition"),
       value: (v: VehicleListing) => t(v.condition === "new" ? "card.new" : "card.used"),

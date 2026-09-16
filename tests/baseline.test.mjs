@@ -90,8 +90,9 @@ test("trust and safety routes use centralized accessible domains", async () => {
   assert.match(conversation, /targetType="CONVERSATION"/);
   assert.match(navigation, /\/account\/verification/);
   assert.match(navigation, /\/dealer-account\/reports/);
-  assert.match(docs, /Sprint 11 owns Transactions, Payments, and Escrow/);
-  assert.match(docs, /Sprint 12 owns/);
+  assert.match(docs, /Sprint 11 establishes the multi-category marketplace only/);
+  assert.match(docs, /Sprint 12 owns Transactions, Payments, and the Escrow foundation/);
+  assert.match(docs, /Sprint 13 owns/);
 });
 
 test("Sprint 10 QA responsive and locale structure is owner-aware and deterministic", async () => {
@@ -312,7 +313,7 @@ test("range bounds are service-provided and URL normalized", async () => {
   assert.match(service, /priceRange:/);
   assert.match(service, /mileageRange:/);
   assert.match(service, /params\.mileageMin/);
-  assert.match(parser, /mileageMin: positiveNumber/);
+  assert.match(parser, /mileageMin: category === "BOAT" \? undefined : positiveNumber/);
 });
 
 test("search draft commits only the latest value without losing fast input", async () => {
@@ -406,8 +407,12 @@ test("related vehicles are service-ranked and exclude the active listing", async
   const page = await read("src/app/(site)/vehicles/[id]/page.tsx");
   const detail = await read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx");
   assert.match(service, /listing\.id !== listingId/);
-  assert.match(service, /normalizeMake\(listing\.make\) === normalizeMake\(source\.make\)/);
-  assert.match(service, /listing\.bodyType === source\.bodyType/);
+  assert.match(
+    service,
+    /normalizeMake\(listingMake\(listing\)\) === normalizeMake\(listingMake\(source\)\)/,
+  );
+  assert.match(service, /listing\.category === source\.category/);
+  assert.match(service, /listing\.specs\.bodyType === source\.specs\.bodyType/);
   assert.match(service, /Math\.abs\(listing\.price - source\.price\)/);
   assert.match(page, /listingsService\.related\(id, 4\)/);
   assert.match(detail, /related\.map\(\(vehicle\) =>/);
@@ -532,9 +537,9 @@ test("dealer inventory search, filters, and sorting remain local", async () => {
   assert.match(detail, /<VehicleGridSkeleton/);
   assert.match(detail, /state\.dealer\.empty\.title/);
   assert.match(service, /publicCatalogService\.byAgency\(agencyId\)/);
-  assert.match(inventory, /listing\.bodyType === filters\.bodyType/);
-  assert.match(inventory, /listing\.fuel === filters\.fuel/);
-  assert.match(inventory, /listing\.transmission === filters\.transmission/);
+  assert.match(inventory, /listing\.specs\.bodyType === filters\.bodyType/);
+  assert.match(inventory, /listing\.specs\.fuelType === filters\.fuel/);
+  assert.match(inventory, /listing\.specs\.transmission === filters\.transmission/);
   assert.match(inventory, /comparators\[filters\.sort\]/);
   assert.doesNotMatch(detail, /router\.(push|replace)/);
 });
@@ -717,7 +722,7 @@ test("favorites and compare remain independent and documented in both languages"
   const docs = await read("DEVELOPMENT.md");
   assert.doesNotMatch(favorites, /compareService|queryKeys\.compare/);
   assert.doesNotMatch(compare, /favoritesService|queryKeys\.favorites/);
-  assert.match(i18n, /"compare\.title": "مقارنة السيارات"/);
+  assert.match(i18n, /"compare\.title": "مقارنة المعروضات"/);
   assert.match(i18n, /"compare\.title": "Compare vehicles"/);
   assert.match(i18n, /"favorites\.search":/);
   assert.match(docs, /sd-favorites/);
@@ -751,7 +756,8 @@ test("compare clear and final removal cannot be restored by a stale URL", async 
   assert.match(page, /if \(pendingUrlValue\.current !== undefined\)/);
   assert.match(page, /else return/);
   assert.match(page, /const setComparison = \(ids: string\[]\)/);
-  assert.match(page, /replaceCompare\(ids\);\s*updateUrl\(ids\)/);
+  assert.match(page, /const valid = sameCategoryCompareIds\(ids\)/);
+  assert.match(page, /replaceCompare\(valid\);\s*updateUrl\(valid\)/);
   assert.match(page, /const next = comparedIds\.filter\(\(item\) => item !== id\)/);
   assert.match(page, /setComparison\(next\)/);
   assert.match(page, /setComparison\(\[]\)/);

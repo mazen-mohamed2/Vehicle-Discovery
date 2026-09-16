@@ -9,19 +9,22 @@ export async function getRequestLocale(): Promise<Locale> {
 export const pageMetadata = {
   vehicles: {
     ar: [
-      "جميع السيارات — سهلة درج",
-      "تصفح جميع السيارات الجديدة والمستعملة من الأفراد والوكلاء الموثقين.",
+      "جميع الإعلانات — سهلة درج",
+      "تصفح السيارات والدراجات النارية والقوارب المعروضة من الأفراد والوكلاء.",
     ],
     en: [
-      "All vehicles — Sahla Daraj",
-      "Browse all new and used vehicles from individuals and verified dealers.",
+      "Marketplace listings — Sahla Daraj",
+      "Browse cars, motorcycles, and recreational boats listed by individuals and dealers.",
     ],
   },
   c2c: {
-    ar: ["سيارات الأفراد — سهلة درج", "سيارات مستعملة معروضة مباشرة من مالكيها في مصر."],
+    ar: [
+      "إعلانات الأفراد — سهلة درج",
+      "سيارات ودراجات نارية وقوارب معروضة مباشرة من أصحابها في مصر.",
+    ],
     en: [
       "C2C Marketplace — Sahla Daraj",
-      "Browse used vehicles listed directly by their owners in Egypt.",
+      "Browse cars, motorcycles, and recreational boats listed directly by their owners in Egypt.",
     ],
   },
   dealers: {

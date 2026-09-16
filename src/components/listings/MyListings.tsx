@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { useManagedListings } from "@/hooks/use-managed-listings";
 import { useI18n } from "@/lib/i18n";
 import type { ListingStatus } from "@/lib/listing";
+import { listingTitle } from "@/lib/listing";
+import { listingCategoryRegistry } from "@/lib/marketplace-listing";
 
 export function MyListings() {
   const { t, locale } = useI18n();
@@ -20,9 +22,7 @@ export function MyListings() {
     () =>
       data.listings
         .filter((item) => status === "all" || item.status === status)
-        .filter((item) =>
-          `${item.make} ${item.model} ${item.trim}`.toLowerCase().includes(search.toLowerCase()),
-        )
+        .filter((item) => listingTitle(item).toLowerCase().includes(search.toLowerCase()))
         .sort((a, b) =>
           sort === "created"
             ? b.createdAt.localeCompare(a.createdAt)
@@ -126,8 +126,11 @@ export function MyListings() {
                   <div className="p-5">
                     <div className="flex justify-between gap-3">
                       <h2 className="font-black">
-                        {listing.make || t("listing.untitled")} {listing.model}
+                        {listingTitle(listing) || t("listing.untitled")}
                       </h2>
+                      <span className="text-xs text-muted-foreground">
+                        {t(listingCategoryRegistry[listing.category].labelKey)}
+                      </span>
                       <span className="rounded-full bg-secondary px-2 py-1 text-xs">
                         {t(`listing.status.${listing.status}`)}
                       </span>

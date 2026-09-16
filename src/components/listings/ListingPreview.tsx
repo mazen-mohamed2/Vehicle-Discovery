@@ -6,10 +6,31 @@ import { Button } from "@/components/ui/button";
 import { useManagedListings } from "@/hooks/use-managed-listings";
 import { useI18n } from "@/lib/i18n";
 import { validateListing } from "@/lib/listing-validators";
+import { listingTitle, toPublicVehicle } from "@/lib/listing";
+import { listingCategoryRegistry, listingSummary } from "@/lib/marketplace-listing";
 
 export function ListingPreview({ listingId }: { listingId: string }) {
-  const { t } = useI18n();
-  const { listing, isLoading } = useManagedListings(listingId);
+  const { t, locale } = useI18n();
+  const { listing, isLoading, isError, error: loadError } = useManagedListings(listingId);
+  if (isError)
+    return (
+      <AuthBoundary>
+        <main className="mx-auto max-w-5xl px-4 py-10" role="alert">
+          <p>
+            {t(
+              loadError instanceof Error &&
+                "code" in loadError &&
+                loadError.code === "LISTING_NOT_FOUND"
+                ? "listing.error.notFound"
+                : "listing.error.load",
+            )}
+          </p>
+          <Button asChild variant="outline" className="mt-4">
+            <Link href="/account/listings">{t("listing.backToList")}</Link>
+          </Button>
+        </main>
+      </AuthBoundary>
+    );
   if (isLoading || !listing)
     return (
       <AuthBoundary>
@@ -19,6 +40,7 @@ export function ListingPreview({ listingId }: { listingId: string }) {
       </AuthBoundary>
     );
   const errors = validateListing(listing, true);
+  const summary = listingSummary(toPublicVehicle(listing), t, locale);
   return (
     <AuthBoundary>
       <main className="mx-auto max-w-5xl px-4 py-10">
@@ -42,11 +64,17 @@ export function ListingPreview({ listingId }: { listingId: string }) {
           </div>
           <section>
             <p className="text-sm font-bold text-primary">
+              {t(listingCategoryRegistry[listing.category].labelKey)} ·{" "}
               {t(`listing.status.${listing.status}`)}
             </p>
             <h1 className="mt-2 text-3xl font-black">
-              {listing.make || t("listing.untitled")} {listing.model} {listing.trim}
+              {listingTitle(listing) || t("listing.untitled")}
             </h1>
+            <ul className="mt-3 flex flex-wrap gap-3 text-sm text-muted-foreground">
+              {summary.map((value) => (
+                <li key={value}>{value}</li>
+              ))}
+            </ul>
             <p className="mt-4 text-2xl font-black">
               {listing.price ?? "—"} {listing.currency}
             </p>

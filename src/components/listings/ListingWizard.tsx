@@ -15,6 +15,9 @@ import { useI18n } from "@/lib/i18n";
 import { validateListing } from "@/lib/listing-validators";
 import type { ListingImage, ListingStep, ManagedListing } from "@/lib/listing";
 import { managedListingsService } from "@/services/managed-listings.service";
+import { categoryFormFields, type CategoryField } from "@/lib/category-form";
+import { listingCategoryRegistry } from "@/lib/marketplace-listing";
+import { listingTitle } from "@/lib/listing";
 
 const steps: ListingStep[] = [
   "basics",
@@ -66,6 +69,25 @@ export function ListingWizard({ listingId }: { listingId: string }) {
   useEffect(() => () => imagesAtUnmount.current.forEach(managedListingsService.revokeImage), []);
   const active = steps[step];
   const invalid = useMemo(() => (draft ? validateListing(draft, false) : {}), [draft]);
+  if (data.isError)
+    return (
+      <AuthBoundary>
+        <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6" role="alert">
+          <p>
+            {t(
+              data.error instanceof Error &&
+                "code" in data.error &&
+                data.error.code === "LISTING_NOT_FOUND"
+                ? "listing.error.notFound"
+                : "listing.error.load",
+            )}
+          </p>
+          <Button asChild variant="outline" className="mt-4">
+            <Link href="/account/listings">{t("listing.backToList")}</Link>
+          </Button>
+        </main>
+      </AuthBoundary>
+    );
   if (data.isLoading || !draft)
     return (
       <AuthBoundary>
@@ -75,7 +97,29 @@ export function ListingWizard({ listingId }: { listingId: string }) {
       </AuthBoundary>
     );
   const set = <K extends keyof ManagedListing>(key: K, value: ManagedListing[K]) =>
-    setDraft((current) => (current ? { ...current, [key]: value } : current));
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            [key]: value,
+            ...(current.category === "CAR" && key in current.specs
+              ? { specs: { ...current.specs, [key]: value } }
+              : {}),
+          }
+        : current,
+    );
+  const setSpec = (name: string, value: string | number | undefined) =>
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            specs: { ...current.specs, [name]: value },
+            ...(name === "make" || name === "model" || name === "mileage" || name === "transmission"
+              ? { [name]: value }
+              : {}),
+          }
+        : current,
+    );
   const next = () => {
     const currentErrors = validateListing(draft, false);
     setErrors(currentErrors);
@@ -121,6 +165,9 @@ export function ListingWizard({ listingId }: { listingId: string }) {
             <p className="text-sm font-bold text-primary">{t("listing.wizard.eyebrow")}</p>
             <h1 className="text-3xl font-black">{t("listing.wizard.title")}</h1>
             <p className="text-sm text-muted-foreground">
+              {t(listingCategoryRegistry[draft.category].labelKey)}
+            </p>
+            <p className="text-sm text-muted-foreground">
               {draft.completionPercentage}% ·{" "}
               {data.isSaving ? t("listing.saving") : t("listing.saved")}
             </p>
@@ -159,7 +206,27 @@ export function ListingWizard({ listingId }: { listingId: string }) {
         )}
         <section className="surface-card rounded-2xl p-5 shadow-card sm:p-7">
           <h2 className="mb-5 text-xl font-black">{t(`listing.step.${active}`)}</h2>
-          {active === "basics" && (
+          {active === "basics" && draft.category !== "CAR" && (
+            <div className="grid gap-5 sm:grid-cols-2">
+              <CategoryFields
+                fields={categoryFormFields[draft.category].basics}
+                draft={draft}
+                setSpec={setSpec}
+                errors={errors}
+              />
+              <Field label={t("form.year")} required>
+                <Input
+                  type="number"
+                  min="1900"
+                  value={draft.year ?? ""}
+                  onChange={(e) => set("year", numeric(e.target.value))}
+                  {...field("year")}
+                />
+                {message("year")}
+              </Field>
+            </div>
+          )}
+          {active === "basics" && draft.category === "CAR" && (
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label={t("form.make")} required>
                 <Input
@@ -198,7 +265,17 @@ export function ListingWizard({ listingId }: { listingId: string }) {
               </Field>
             </div>
           )}
-          {active === "specifications" && (
+          {active === "specifications" && draft.category !== "CAR" && (
+            <div className="grid gap-5 sm:grid-cols-2">
+              <CategoryFields
+                fields={categoryFormFields[draft.category].specifications}
+                draft={draft}
+                setSpec={setSpec}
+                errors={errors}
+              />
+            </div>
+          )}
+          {active === "specifications" && draft.category === "CAR" && (
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label={t("listing.field.mileage")}>
                 <Input
@@ -241,26 +318,36 @@ export function ListingWizard({ listingId }: { listingId: string }) {
           {active === "history" && (
             <div className="grid gap-5 sm:grid-cols-2">
               <SelectField
-                label={t("listing.field.accident")}
-                value={draft.accidentHistory}
-                onChange={(v) => set("accidentHistory", v as ManagedListing["accidentHistory"])}
-                options={["none", "declared", "unknown"]}
+                label={t("vehicle.condition")}
+                value={draft.condition}
+                onChange={(v) => set("condition", v as ManagedListing["condition"])}
+                options={["new", "used"]}
               />
-              <SelectField
-                label={t("listing.field.import")}
-                value={draft.importStatus}
-                onChange={(v) => set("importStatus", v as ManagedListing["importStatus"])}
-                options={["local", "imported", "unknown"]}
-              />
-              <Field label={t("vehicle.vin")}>
-                <Input
-                  value={draft.vin ?? ""}
-                  maxLength={17}
-                  onChange={(e) => set("vin", e.target.value || undefined)}
-                  {...field("vin")}
-                />
-                {message("vin")}
-              </Field>
+              {draft.category === "CAR" && (
+                <>
+                  <SelectField
+                    label={t("listing.field.accident")}
+                    value={draft.accidentHistory}
+                    onChange={(v) => set("accidentHistory", v as ManagedListing["accidentHistory"])}
+                    options={["none", "declared", "unknown"]}
+                  />
+                  <SelectField
+                    label={t("listing.field.import")}
+                    value={draft.importStatus}
+                    onChange={(v) => set("importStatus", v as ManagedListing["importStatus"])}
+                    options={["local", "imported", "unknown"]}
+                  />
+                  <Field label={t("vehicle.vin")}>
+                    <Input
+                      value={draft.vin ?? ""}
+                      maxLength={17}
+                      onChange={(e) => set("vin", e.target.value || undefined)}
+                      {...field("vin")}
+                    />
+                    {message("vin")}
+                  </Field>
+                </>
+              )}
             </div>
           )}
           {active === "commercial" && (
@@ -336,9 +423,7 @@ export function ListingWizard({ listingId }: { listingId: string }) {
               <dl className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <dt className="text-muted-foreground">{t("form.make")}</dt>
-                  <dd className="font-bold">
-                    {draft.make} {draft.model}
-                  </dd>
+                  <dd className="font-bold">{listingTitle(draft)}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">{t("listing.field.price")}</dt>
@@ -418,6 +503,69 @@ function SelectField({
       </select>
     </Field>
   );
+}
+function CategoryFields({
+  fields,
+  draft,
+  setSpec,
+  errors,
+}: {
+  fields: readonly CategoryField[];
+  draft: ManagedListing;
+  setSpec: (name: string, value: string | number | undefined) => void;
+  errors: Record<string, string>;
+}) {
+  const { t } = useI18n();
+  return fields.map((field) => {
+    const value = Reflect.get(draft.specs, field.name) as string | number | undefined;
+    const id = `listing-spec-${field.name}`;
+    const errorId = `${id}-error`;
+    return (
+      <div key={field.name} className="space-y-2">
+        <Label htmlFor={id}>
+          {t(field.labelKey)}
+          {field.required && <span aria-hidden="true"> *</span>}
+        </Label>
+        {field.kind === "select" ? (
+          <select
+            id={id}
+            value={value ?? ""}
+            onChange={(event) => setSpec(field.name, event.target.value)}
+            aria-invalid={Boolean(errors[field.name])}
+            aria-describedby={errors[field.name] ? errorId : undefined}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">{t("discovery.all")}</option>
+            {field.options?.map((option) => (
+              <option key={option} value={option}>
+                {t(`${field.name}.${option}`)}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <Input
+            id={id}
+            type={field.kind}
+            min={field.kind === "number" ? 0 : undefined}
+            value={value ?? ""}
+            onChange={(event) =>
+              setSpec(
+                field.name,
+                field.kind === "number" ? numeric(event.target.value) : event.target.value,
+              )
+            }
+            aria-invalid={Boolean(errors[field.name])}
+            aria-describedby={errors[field.name] ? errorId : undefined}
+          />
+        )}
+        {errors[field.name] && (
+          <p id={errorId} className="text-sm text-destructive">
+            {t(`listing.validation.${errors[field.name]}`)}
+          </p>
+        )}
+      </div>
+    );
+  });
 }
 function Photos({
   draft,

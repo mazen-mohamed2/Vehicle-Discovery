@@ -1,5 +1,6 @@
 import { scopedStorageKey, type StorageScope } from "@/lib/storage-scope";
 import { AuthServiceError } from "@/lib/auth";
+import { publicCatalogService } from "@/services/public-catalog.service";
 
 export const MAX_COMPARE_VEHICLES = 4;
 const legacyKey = "sd-compare";
@@ -10,6 +11,21 @@ export function normalizeCompareIds(value: unknown): string[] {
   return [
     ...new Set(value.filter((id): id is string => typeof id === "string" && id.trim() !== "")),
   ].slice(0, MAX_COMPARE_VEHICLES);
+}
+export function sameCategoryCompareIds(ids: string[]): string[] {
+  let category: string | undefined;
+  return ids.filter((id) => {
+    const listing = publicCatalogService.byId(id);
+    if (!listing) return false;
+    category ??= listing.category;
+    return listing.category === category;
+  });
+}
+export function canCompareListing(ids: string[], listingId: string): boolean {
+  const candidate = publicCatalogService.byId(listingId);
+  if (!candidate) return false;
+  const current = ids.map((id) => publicCatalogService.byId(id)).find(Boolean);
+  return !current || current.category === candidate.category;
 }
 function migrateLegacyGuest() {
   if (typeof window === "undefined") return;
@@ -60,9 +76,14 @@ const delay = <T>(value: T, ms = 80) =>
   new Promise<T>((resolve) => setTimeout(() => resolve(value), ms));
 
 export const compareService = {
-  list: (scope: StorageScope) => delay(read(scope)),
+  list: (scope: StorageScope) => {
+    const stored = read(scope);
+    const valid = sameCategoryCompareIds(stored);
+    if (stored.join(",") !== valid.join(",")) write(scope, valid);
+    return delay(valid);
+  },
   replace: (scope: StorageScope, ids: string[]) => {
-    const next = normalizeCompareIds(ids);
+    const next = sameCategoryCompareIds(normalizeCompareIds(ids));
     write(scope, next);
     return delay([...next]);
   },

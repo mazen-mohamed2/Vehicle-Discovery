@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sheet";
 import { VehicleCard } from "./VehicleCard";
 import { QueryErrorState, VehicleGridSkeleton } from "./CollectionStates";
+import { listingCategories } from "@/lib/marketplace-listing";
 
 type Props = { lockedSellerType?: SellerType; emptyTitle: string; emptyDescription: string };
 
@@ -144,6 +145,7 @@ export function VehicleDiscovery({ lockedSellerType, emptyTitle, emptyDescriptio
   };
 
   const activeFilterCount = [
+    params.category,
     params.q,
     params.make,
     params.model,
@@ -154,6 +156,13 @@ export function VehicleDiscovery({ lockedSellerType, emptyTitle, emptyDescriptio
     params.mileageMax,
     params.fuel,
     params.transmission,
+    params.motorcycleType,
+    params.engineCapacityMin,
+    params.boatType,
+    params.propulsion,
+    params.lengthMin,
+    params.lengthMax,
+    params.engineHoursMax,
     params.condition,
     lockedSellerType ? undefined : params.sellerType,
     params.location,
@@ -194,6 +203,35 @@ export function VehicleDiscovery({ lockedSellerType, emptyTitle, emptyDescriptio
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <SelectField
+            label={t("category.choose")}
+            value={params.category ?? ""}
+            onChange={(value) =>
+              update({
+                category: value || undefined,
+                make: undefined,
+                model: undefined,
+                mileageMin: undefined,
+                mileageMax: undefined,
+                fuel: undefined,
+                transmission: undefined,
+                motorcycleType: undefined,
+                engineCapacityMin: undefined,
+                boatType: undefined,
+                propulsion: undefined,
+                lengthMin: undefined,
+                lengthMax: undefined,
+                engineHoursMax: undefined,
+                sort:
+                  value === "BOAT" && params.sort.startsWith("mileage")
+                    ? undefined
+                    : (searchParams.get("sort") ?? undefined),
+              })
+            }
+            options={listingCategories.map((category) => [category, t(`category.${category}`)])}
+            allLabel={t("category.all")}
+            compact
+          />
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" className="lg:hidden">
@@ -227,8 +265,12 @@ export function VehicleDiscovery({ lockedSellerType, emptyTitle, emptyDescriptio
               ["oldest", t("sort.oldest")],
               ["price-asc", t("sort.priceAsc")],
               ["price-desc", t("sort.priceDesc")],
-              ["mileage-asc", t("sort.mileageAsc")],
-              ["mileage-desc", t("sort.mileageDesc")],
+              ...(params.category === "BOAT"
+                ? []
+                : [
+                    ["mileage-asc", t("sort.mileageAsc")],
+                    ["mileage-desc", t("sort.mileageDesc")],
+                  ]),
             ]}
             compact
           />
@@ -341,6 +383,12 @@ function FilterFields({
     locations: string[];
     priceRange: [number, number];
     mileageRange: [number, number];
+    lengthRange: [number, number];
+    engineCapacityRange: [number, number];
+    motorcycleTypes: string[];
+    boatTypes: string[];
+    propulsions: string[];
+    engineHoursValues: number[];
   };
   lockedSellerType?: SellerType;
   update: (changes: Record<string, string | undefined>) => void;
@@ -372,24 +420,92 @@ function FilterFields({
         options={option(facets.years)}
         allLabel={t("discovery.all")}
       />
-      <RangeFilters params={params} facets={facets} update={update} locale={locale} />
-      <SelectField
-        label={t("vehicle.fuel")}
-        value={params.fuel ?? ""}
-        onChange={(value) => update({ fuel: value || undefined })}
-        options={["gasoline", "diesel", "hybrid", "electric"].map((value) => [
-          value,
-          t(`fuel.${value}`),
-        ])}
-        allLabel={t("discovery.all")}
+      <RangeFilters
+        params={params}
+        facets={facets}
+        update={update}
+        locale={locale}
+        showMileage={params.category !== "BOAT"}
       />
-      <SelectField
-        label={t("vehicle.transmission")}
-        value={params.transmission ?? ""}
-        onChange={(value) => update({ transmission: value || undefined })}
-        options={["automatic", "manual"].map((value) => [value, t(`transmission.${value}`)])}
-        allLabel={t("discovery.all")}
-      />
+      {(!params.category || params.category === "CAR") && (
+        <SelectField
+          label={t("vehicle.fuel")}
+          value={params.fuel ?? ""}
+          onChange={(value) => update({ fuel: value || undefined })}
+          options={["gasoline", "diesel", "hybrid", "electric"].map((value) => [
+            value,
+            t(`fuel.${value}`),
+          ])}
+          allLabel={t("discovery.all")}
+        />
+      )}
+      {params.category === "MOTORCYCLE" && (
+        <>
+          <SelectField
+            label={t("category.motorcycleType")}
+            value={params.motorcycleType ?? ""}
+            onChange={(value) => update({ motorcycleType: value || undefined })}
+            options={facets.motorcycleTypes.map((value) => [value, t(`motorcycleType.${value}`)])}
+            allLabel={t("discovery.all")}
+          />
+          <SelectField
+            label={t("category.engineCapacity")}
+            value={params.engineCapacityMin === undefined ? "" : String(params.engineCapacityMin)}
+            onChange={(value) => update({ engineCapacityMin: value || undefined })}
+            options={option(
+              facets.engineCapacityRange[0] === facets.engineCapacityRange[1]
+                ? facets.engineCapacityRange.slice(0, 1)
+                : facets.engineCapacityRange,
+            )}
+            allLabel={t("discovery.all")}
+          />
+        </>
+      )}
+      {params.category === "BOAT" && (
+        <>
+          <SelectField
+            label={t("category.boatType")}
+            value={params.boatType ?? ""}
+            onChange={(value) => update({ boatType: value || undefined })}
+            options={facets.boatTypes.map((value) => [value, t(`boatType.${value}`)])}
+            allLabel={t("discovery.all")}
+          />
+          <SelectField
+            label={t("category.propulsion")}
+            value={params.propulsion ?? ""}
+            onChange={(value) => update({ propulsion: value || undefined })}
+            options={facets.propulsions.map((value) => [value, t(`propulsion.${value}`)])}
+            allLabel={t("discovery.all")}
+          />
+          <SelectField
+            label={t("category.length")}
+            value={params.lengthMin === undefined ? "" : String(params.lengthMin)}
+            onChange={(value) => update({ lengthMin: value || undefined })}
+            options={option(
+              facets.lengthRange[0] === facets.lengthRange[1]
+                ? facets.lengthRange.slice(0, 1)
+                : facets.lengthRange,
+            )}
+            allLabel={t("discovery.all")}
+          />
+          <SelectField
+            label={t("category.engineHours")}
+            value={params.engineHoursMax === undefined ? "" : String(params.engineHoursMax)}
+            onChange={(value) => update({ engineHoursMax: value || undefined })}
+            options={option(facets.engineHoursValues)}
+            allLabel={t("discovery.all")}
+          />
+        </>
+      )}
+      {(!params.category || params.category === "CAR") && (
+        <SelectField
+          label={t("vehicle.transmission")}
+          value={params.transmission ?? ""}
+          onChange={(value) => update({ transmission: value || undefined })}
+          options={["automatic", "manual"].map((value) => [value, t(`transmission.${value}`)])}
+          allLabel={t("discovery.all")}
+        />
+      )}
       <SelectField
         label={t("filter.condition")}
         value={params.condition ?? ""}
@@ -463,11 +579,13 @@ function RangeFilters({
   facets,
   update,
   locale,
+  showMileage,
 }: {
   params: ReturnType<typeof parseDiscoveryParams>;
   facets: { priceRange: [number, number]; mileageRange: [number, number] };
   update: (changes: Record<string, string | undefined>) => void;
   locale: "ar" | "en";
+  showMileage: boolean;
 }) {
   const { t } = useI18n();
   const [priceFloor, priceCeiling] = facets.priceRange;
@@ -536,40 +654,42 @@ function RangeFilters({
           thumbLabels={[t("filter.priceMin"), t("filter.priceMax")]}
         />
       </fieldset>
-      <fieldset className="grid gap-3">
-        <div className="flex items-center justify-between gap-2">
-          <legend className="text-xs font-semibold">{t("filter.mileageRange")}</legend>
-          {(params.mileageMin !== undefined || params.mileageMax !== undefined) && (
-            <button
-              type="button"
-              className="text-xs text-primary hover:underline"
-              onClick={() => {
-                setMileage(facets.mileageRange);
-                commitMileage(facets.mileageRange);
-              }}
-            >
-              {t("common.clear")}
-            </button>
-          )}
-        </div>
-        <div
-          className="flex justify-between gap-2 text-xs text-muted-foreground"
-          aria-live="polite"
-        >
-          <span>{formatMileage(mileage[0], locale, t("card.km"))}</span>
-          <span>{formatMileage(mileage[1], locale, t("card.km"))}</span>
-        </div>
-        <Slider
-          min={facets.mileageRange[0]}
-          max={facets.mileageRange[1]}
-          step={1_000}
-          minStepsBetweenThumbs={1}
-          value={mileage}
-          onValueChange={(values) => setMileage([values[0], values[1]])}
-          onValueCommit={commitMileage}
-          thumbLabels={[t("filter.mileageMin"), t("filter.mileageMax")]}
-        />
-      </fieldset>
+      {showMileage && (
+        <fieldset className="grid gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <legend className="text-xs font-semibold">{t("filter.mileageRange")}</legend>
+            {(params.mileageMin !== undefined || params.mileageMax !== undefined) && (
+              <button
+                type="button"
+                className="text-xs text-primary hover:underline"
+                onClick={() => {
+                  setMileage(facets.mileageRange);
+                  commitMileage(facets.mileageRange);
+                }}
+              >
+                {t("common.clear")}
+              </button>
+            )}
+          </div>
+          <div
+            className="flex justify-between gap-2 text-xs text-muted-foreground"
+            aria-live="polite"
+          >
+            <span>{formatMileage(mileage[0], locale, t("card.km"))}</span>
+            <span>{formatMileage(mileage[1], locale, t("card.km"))}</span>
+          </div>
+          <Slider
+            min={facets.mileageRange[0]}
+            max={facets.mileageRange[1]}
+            step={1_000}
+            minStepsBetweenThumbs={1}
+            value={mileage}
+            onValueChange={(values) => setMileage([values[0], values[1]])}
+            onValueCommit={commitMileage}
+            thumbLabels={[t("filter.mileageMin"), t("filter.mileageMax")]}
+          />
+        </fieldset>
+      )}
     </div>
   );
 }

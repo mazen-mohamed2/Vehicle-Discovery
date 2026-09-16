@@ -1,5 +1,10 @@
 import type { Condition, FuelType, Transmission, VehicleListing } from "@/lib/types";
 import type { StorageScope } from "@/lib/storage-scope";
+import {
+  isMarketplaceListing,
+  type CategorySpecs,
+  type ListingCategory,
+} from "@/lib/marketplace-listing";
 
 export type ListingStatus = "draft" | "pending" | "published" | "sold" | "archived";
 export type VerificationStatus =
@@ -29,6 +34,9 @@ export interface SellerDeclarations {
 }
 
 export interface ManagedListing {
+  /** Flat CAR fields remain a draft/editor compatibility surface during the migration. */
+  category: ListingCategory;
+  specs: CategorySpecs[ListingCategory];
   id: string;
   sellerId: string;
   sellerRole: "user" | "dealer";
@@ -111,20 +119,21 @@ export interface ListingOwner {
 }
 
 export function toPublicVehicle(listing: ManagedListing): VehicleListing {
-  return {
+  const common = {
     id: listing.id,
-    title: [listing.make, listing.model, listing.trim].filter(Boolean).join(" "),
-    make: listing.make,
-    model: listing.model,
+    title: [
+      listing.specs.make,
+      listing.specs.model,
+      listing.category === "CAR" && "trim" in listing.specs ? listing.specs.trim : "",
+    ]
+      .filter(Boolean)
+      .join(" "),
     year: listing.year ?? new Date().getFullYear(),
     price: listing.price ?? 0,
     currency: listing.currency,
-    mileage: listing.mileage ?? 0,
     location: listing.location,
     condition: listing.condition,
-    fuel: listing.fuelType || "gasoline",
-    transmission: listing.transmission || "automatic",
-    sellerType: listing.sellerRole === "dealer" ? "agency" : "individual",
+    sellerType: listing.sellerRole === "dealer" ? ("agency" as const) : ("individual" as const),
     sellerId: listing.dealerId ?? listing.sellerId,
     sellerUserId: listing.sellerId,
     sellerName: listing.sellerName,
@@ -133,9 +142,23 @@ export function toPublicVehicle(listing: ManagedListing): VehicleListing {
     images: listing.images.map((image) => ({ id: image.id, url: image.url, alt: image.name })),
     createdAt: listing.publishedAt ?? listing.createdAt,
     updatedAt: listing.updatedAt,
-    engine: listing.engineSize ? `${listing.engineSize} L` : undefined,
-    bodyType: listing.bodyType || undefined,
-    color: listing.exteriorColor || undefined,
-    vin: listing.vin,
   };
+  const result: VehicleListing =
+    listing.category === "CAR"
+      ? { ...common, category: "CAR", specs: listing.specs as CategorySpecs["CAR"] }
+      : listing.category === "MOTORCYCLE"
+        ? { ...common, category: "MOTORCYCLE", specs: listing.specs as CategorySpecs["MOTORCYCLE"] }
+        : { ...common, category: "BOAT", specs: listing.specs as CategorySpecs["BOAT"] };
+  if (!isMarketplaceListing(result)) throw new ListingServiceError("VALIDATION_ERROR");
+  return result;
+}
+
+export function listingTitle(listing: ManagedListing) {
+  return [
+    listing.specs.make,
+    listing.specs.model,
+    listing.category === "CAR" && "trim" in listing.specs ? listing.specs.trim : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 }

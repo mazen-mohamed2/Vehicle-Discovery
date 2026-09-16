@@ -283,7 +283,8 @@ offers, payments, transactions, or legal obligations. Wider enforcement belongs 
 `ReviewRecord` requires a canonical `transactionId` and supports only `INDIVIDUAL_SELLER` and
 `DEALER`. Sprint 10 exposes no review mutation or arbitrary eligibility. A completed qualifying
 Transaction is the future eligibility boundary, so individual profiles truthfully show no reviews
-and no generated rating today. Sprint 11 owns Transactions, Payments, and Escrow. Sprint 12 owns
+and no generated rating today. Sprint 11 establishes the multi-category marketplace only.
+Sprint 12 owns Transactions, Payments, and the Escrow foundation. Sprint 13 owns
 transaction-backed Review eligibility, the final Website audit, and domain handoff.
 
 The mock repositories persist only safe verification declarations, reports, and block relationships
@@ -302,3 +303,77 @@ encrypted storage, malware scanning, retention/deletion policy, privacy controls
 verification and moderation audit trails, report abuse/spam rate limits, server-authoritative badges,
 block enforcement, transaction-backed review eligibility, review moderation, and complete audit
 logging. The frontend mock is product behavior, not a security boundary.
+
+# Sprint 11: multi-category marketplace foundation
+
+`MarketplaceListing` in `src/lib/marketplace-listing.ts` is the canonical public domain. Its
+discriminated union correlates `CAR`, `MOTORCYCLE`, and `BOAT` with separate focused specs. `VehicleListing`
+remains a compatibility alias because existing routes, query keys, hooks, offers, messages,
+notifications, favorites, comparison, and trust records already reference stable listing IDs.
+Common fields retain the existing ID, title, year, price/currency, location, condition, seller
+identity, media, listing timestamps, and public flags. `CarSpecs` retains make/model/trim,
+mileage, transmission, fuel, body type, drivetrain, color, engine, and history fields;
+`MotorcycleSpecs` covers make/model, mileage, type, engine capacity, and transmission;
+`BoatSpecs` covers make/model, recreational type, length, propulsion, engine count/hours, and hull
+material. The category/spec pairing is enforced by the mapped TypeScript union and checked again
+at runtime for mock fixtures and persisted records. The existing focused validation functions are
+extended; no second schema framework was introduced. The `listingCategoryRegistry` holds labels,
+capability flags (creation, offers, messaging, compare, verification, and CAR-only Custom Import),
+and field descriptors. It is explicitly not a God Object: persistence, query state, authorization,
+offer/report/verification lifecycles, and React pages remain outside it. `BOAT` is
+recreational/personal marine only; commercial-vessel specifications and workflows are not
+implemented. Custom Import remains CAR-only.
+
+Category selection occurs before a new draft is persisted. Once the draft has its ID, category is
+immutable in normal edits. The existing CAR wizard is intentionally retained; motorcycle and boat
+specification fields share the wizard infrastructure and category form descriptors. Category-specific
+required fields apply at publication. The listing title is still derived from structured specs,
+not manually required. Edit and Preview reuse the same category-specific definitions, and My
+Listings keeps the existing draft/published/sold/archived lifecycle and category-aware summaries.
+Photos remain optional while media is temporary and no durable upload service exists; the eventual
+backend must define and enforce its own photo policy.
+
+Owned and public mock listing storage now uses a version-2 envelope
+`{schemaVersion: 2, records: [...]}` under the existing `sd-owned-listings:<scope>` and
+`sd-published-listings` keys. A legacy flat array is validated, deterministically migrated to CAR
+specs, validated again, and written back once without changing listing IDs, owner IDs, timestamps,
+status, images, or linked favorites/compare/offer/conversation/report/verification references.
+Invalid or unsupported persisted records fail closed with the existing storage error; migration does
+not infer category from title text. This LocalStorage layer is a frontend-only mock, not a security
+or concurrency boundary.
+
+Public discovery uses the same `/vehicles` and `/c2c` routes with a URL-backed category filter.
+The shared search indexes configured category facts and can search across all three categories.
+Category-specific filters are normalized before service/query-key use; switching category removes
+incompatible URL parameters. Existing URL-backed sorting and pagination remain, with category
+changes resetting the page. Cards and details render category-specific facts with generic image
+fallbacks; related listings remain in-category. Seller profiles and dealer inventory use the same
+canonical records, with dealer filtering respecting category. Arabic/English labels, RTL/LTR, and
+responsive navigation use the existing UI/i18n infrastructure. Favorites remain identity-scoped
+and category-agnostic. Comparison consumes the canonical category/specs shape and is limited to
+one category at a time; changing category requires clearing the existing set, and a persisted
+mixed-category set is normalized on read while keeping the first valid category.
+Existing routes and IDs remain stable. Offers, conversations, notifications, and reports continue
+to reference canonical listing IDs and can therefore attach to any of the three categories. Listing
+verification remains stored under the legacy `VEHICLE` subject name for persistence compatibility;
+it must be generalized to `LISTING` at the future backend contract boundary without losing records.
+
+The backend/dashboard parity phase must share one category-aware MarketplaceListing contract,
+canonical listing IDs, category/spec validation, lifecycle states, migration history, and ownership
+rules. Backend authorization, concurrent writes, durable media, search indexing, moderation, and
+cross-client synchronization are not supplied by this Website-only sprint. No separate dashboard
+repository or API was changed here.
+
+The mock catalog retains all existing CAR fixture IDs and adds representative motorcycle and
+recreational boat fixtures validated through the same runtime boundary. Public category URLs and
+fixture details have category-aware metadata/sitemap entries; a listing created only in browser
+LocalStorage cannot receive server-rendered per-record metadata until a backend supplies it.
+Private account routes retain their existing noindex rules. The existing status, load, empty,
+not-found, and image-fallback components remain shared across categories.
+
+The previous CAR card/detail engine display and same-body-style related-listing preference are
+preserved in CAR specs and ranking. Category-specific seller/dealer cards show localized summary
+facts without implying boat mileage or car fuel/transmission for motorcycles and boats. Owner
+detail/edit/preview pages show terminal load/not-found errors rather than indefinite loading if
+stored listing data is invalid or inaccessible. Browser-rendered data and SSR metadata for newly
+created LocalStorage-only listings cannot be fully consistent until a backend owns public records.

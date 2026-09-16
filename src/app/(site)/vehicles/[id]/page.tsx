@@ -3,7 +3,7 @@ import { listingsService } from "@/services/listings.service";
 import { agenciesService } from "@/services/agencies.service";
 import { VehicleDetailClient } from "./vehicle-detail-client";
 import { getRequestLocale } from "@/lib/server-locale";
-import { formatCurrency, formatMileage, formatYear } from "@/lib/locale";
+import { formatCurrency, formatYear } from "@/lib/locale";
 import { PublicVehicleDetailResolver } from "./public-vehicle-detail-resolver";
 
 type Props = { params: Promise<{ id: string }> };
@@ -15,14 +15,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const brand = locale === "ar" ? "سهلة درج" : "Sahla Daraj";
   if (!vehicle) {
     return {
-      title: `${locale === "ar" ? "سيارة غير موجودة" : "Vehicle not found"} — ${brand}`,
+      title: `${locale === "ar" ? "إعلان غير موجود" : "Listing not found"} — ${brand}`,
       robots: { index: false, follow: false },
     };
   }
+  const categoryName =
+    locale === "ar"
+      ? { CAR: "سيارة", MOTORCYCLE: "دراجة نارية", BOAT: "قارب" }[vehicle.category]
+      : { CAR: "Car", MOTORCYCLE: "Motorcycle", BOAT: "Boat" }[vehicle.category];
   const description =
     locale === "ar"
-      ? `${vehicle.title}، موديل ${formatYear(vehicle.year, locale)}، بسعر ${formatCurrency(vehicle.price, vehicle.currency, locale)} ومسافة ${formatMileage(vehicle.mileage, locale, "كم")}.`
-      : `${vehicle.title}, ${formatYear(vehicle.year, locale)}, priced at ${formatCurrency(vehicle.price, vehicle.currency, locale)} with ${formatMileage(vehicle.mileage, locale, "km")}.`;
+      ? `${categoryName}: ${vehicle.title}، موديل ${formatYear(vehicle.year, locale)}، بسعر ${formatCurrency(vehicle.price, vehicle.currency, locale)}.`
+      : `${categoryName}: ${vehicle.title}, ${formatYear(vehicle.year, locale)}, priced at ${formatCurrency(vehicle.price, vehicle.currency, locale)}.`;
   const image = vehicle.images[0];
   return {
     title: `${vehicle.title} — ${brand}`,

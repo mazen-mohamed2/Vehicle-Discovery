@@ -7,6 +7,7 @@ export type VehicleSort =
   "newest" | "oldest" | "price-asc" | "price-desc" | "mileage-asc" | "mileage-desc";
 
 export interface VehicleDiscoveryParams {
+  category?: import("@/lib/marketplace-listing").ListingCategory;
   q?: string;
   make?: string;
   model?: string;
@@ -17,6 +18,13 @@ export interface VehicleDiscoveryParams {
   mileageMax?: number;
   fuel?: FuelType;
   transmission?: Transmission;
+  motorcycleType?: import("@/lib/marketplace-listing").MotorcycleType;
+  boatType?: import("@/lib/marketplace-listing").BoatType;
+  propulsion?: import("@/lib/marketplace-listing").PropulsionType;
+  lengthMin?: number;
+  lengthMax?: number;
+  engineHoursMax?: number;
+  engineCapacityMin?: number;
   condition?: Condition;
   sellerType?: SellerType;
   location?: string;
@@ -38,6 +46,12 @@ export interface VehicleDiscoveryResult {
     locations: string[];
     priceRange: [number, number];
     mileageRange: [number, number];
+    lengthRange: [number, number];
+    engineCapacityRange: [number, number];
+    motorcycleTypes: string[];
+    boatTypes: string[];
+    propulsions: string[];
+    engineHoursValues: number[];
   };
 }
 
@@ -73,36 +87,9 @@ export interface VehicleMedia {
   alt: string;
 }
 
-export interface VehicleListing {
-  id: string;
-  title: string;
-  make: string;
-  model: string;
-  year: number;
-  price: number;
-  currency: "EGP" | "USD";
-  mileage: number;
-  location: string;
-  condition: Condition;
-  fuel: FuelType;
-  transmission: Transmission;
-  sellerType: SellerType;
-  sellerId: string;
-  /** Canonical account identity used for participant authorization. */
-  sellerUserId?: string;
-  sellerName: string;
-  verified: boolean;
-  featured: boolean;
-  images: VehicleMedia[];
-  createdAt: string;
-  updatedAt?: string;
-  engine?: string;
-  bodyType?: string;
-  color?: string;
-  vin?: string;
-  stockId?: string;
-  views?: number;
-}
+/** Compatibility name retained for existing routes/components. */
+export type VehicleListing = import("@/lib/marketplace-listing").MarketplaceListing;
+export type { MarketplaceListing, ListingCategory } from "@/lib/marketplace-listing";
 
 export interface Favorite {
   id: string;

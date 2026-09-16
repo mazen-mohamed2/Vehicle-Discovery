@@ -48,6 +48,7 @@ import { ReportDialog } from "@/components/trust-safety/ReportDialog";
 import { TrustBadge } from "@/components/trust-safety/TrustBadge";
 import { trustSafetyService } from "@/services/trust-safety.service";
 import { VehicleVerificationAction } from "@/components/trust-safety/VehicleVerificationAction";
+import { carEngineDisplay, listingCategoryRegistry } from "@/lib/marketplace-listing";
 
 export function VehicleDetailClient({
   vehicle: v,
@@ -63,7 +64,12 @@ export function VehicleDetailClient({
   const [offerOpen, setOfferOpen] = useState(false);
   const { isFavorite, toggleFavorite, isHydrating, togglingListingId } = useFavorites();
   const saved = isFavorite(v.id);
-  const { isCompared, toggleCompare, isHydrating: compareHydrating } = useCompare();
+  const {
+    isCompared,
+    toggleCompare,
+    canCompareListing,
+    isHydrating: compareHydrating,
+  } = useCompare();
   const compared = isCompared(v.id);
   const auth = useAuth();
   const router = useRouter();
@@ -75,19 +81,39 @@ export function VehicleDetailClient({
   );
 
   const overview = [
+    [t("category.kind"), t(listingCategoryRegistry[v.category].labelKey)],
     [t("form.year"), formatYear(v.year, locale)],
-    [t("card.km"), formatMileage(v.mileage, locale, t("card.km"))],
     [t("vehicle.condition"), t(v.condition === "new" ? "card.new" : "card.used")],
-    [t("vehicle.bodyType"), v.bodyType ?? t("vehicle.notAvailable")],
   ];
-  const mechanical = [
-    [t("vehicle.fuel"), t(`fuel.${v.fuel}`)],
-    [t("vehicle.transmission"), t(`transmission.${v.transmission}`)],
-    [t("vehicle.engine"), v.engine ?? t("vehicle.notAvailable")],
-    [t("vehicle.color"), v.color ?? t("vehicle.notAvailable")],
-  ];
+  const mechanical: string[][] = [];
+  if (v.category === "CAR") {
+    overview.push([t("card.km"), formatMileage(v.specs.mileage ?? 0, locale, t("card.km"))]);
+    overview.push([t("vehicle.bodyType"), v.specs.bodyType || t("vehicle.notAvailable")]);
+    mechanical.push([t("vehicle.fuel"), t(`fuel.${v.specs.fuelType}`)]);
+    mechanical.push([t("vehicle.transmission"), t(`transmission.${v.specs.transmission}`)]);
+    mechanical.push([t("vehicle.engine"), carEngineDisplay(v) ?? t("vehicle.notAvailable")]);
+    mechanical.push([t("vehicle.color"), v.specs.exteriorColor || t("vehicle.notAvailable")]);
+  } else if (v.category === "MOTORCYCLE") {
+    overview.push([t("card.km"), formatMileage(v.specs.mileage ?? 0, locale, t("card.km"))]);
+    overview.push([t("category.motorcycleType"), t(`motorcycleType.${v.specs.motorcycleType}`)]);
+    mechanical.push([
+      t("category.engineCapacity"),
+      `${v.specs.engineCapacityCc ?? "—"} ${t("category.cc")}`,
+    ]);
+    if (v.specs.transmission)
+      mechanical.push([t("vehicle.transmission"), t(`transmission.${v.specs.transmission}`)]);
+  } else {
+    overview.push([t("category.boatType"), t(`boatType.${v.specs.boatType}`)]);
+    overview.push([t("category.length"), `${v.specs.lengthMeters ?? "—"} ${t("category.meters")}`]);
+    mechanical.push([t("category.propulsion"), t(`propulsion.${v.specs.propulsion}`)]);
+    if (v.specs.engineCount)
+      mechanical.push([t("category.engineCount"), String(v.specs.engineCount)]);
+    if (v.specs.engineHours !== undefined)
+      mechanical.push([t("category.engineHours"), String(v.specs.engineHours)]);
+    if (v.specs.hullMaterial) mechanical.push([t("category.hullMaterial"), v.specs.hullMaterial]);
+  }
   const listing = [
-    [t("vehicle.vin"), v.vin ?? t("vehicle.notAvailable")],
+    ...(v.category === "CAR" ? [[t("vehicle.vin"), v.specs.vin ?? t("vehicle.notAvailable")]] : []),
     [t("vehicle.stockId"), v.stockId ?? v.id.toUpperCase()],
     [t("vehicle.listed"), formatDate(v.createdAt, locale)],
     [t("vehicle.updated"), formatDate(v.updatedAt ?? v.createdAt, locale)],
@@ -138,7 +164,7 @@ export function VehicleDetailClient({
             </div>
             <h1 className="mt-4 text-2xl font-black sm:text-3xl">{v.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {formatYear(v.year, locale)} · {v.make} {v.model}
+              {formatYear(v.year, locale)} · {v.specs.make} {v.specs.model}
             </p>
             <p className="mt-4 text-3xl font-black bg-gradient-to-br from-primary to-primary-glow bg-clip-text text-transparent">
               {formatCurrency(v.price, v.currency, locale)}
@@ -215,7 +241,10 @@ export function VehicleDetailClient({
                   aria-pressed={compared}
                   onClick={() => {
                     const changed = toggleCompare(v.id);
-                    if (!changed) toast.error(t("compare.limit"));
+                    if (!changed)
+                      toast.error(
+                        t(canCompareListing(v.id) ? "compare.limit" : "category.compareSame"),
+                      );
                     else toast.success(t(compared ? "compare.removed" : "compare.added"));
                   }}
                 >
@@ -250,7 +279,7 @@ export function VehicleDetailClient({
             <p className="mt-1 text-sm text-muted-foreground">{t("vehicle.relatedDescription")}</p>
           </div>
           <Link
-            href={`/vehicles?make=${encodeURIComponent(v.make)}`}
+            href={`/vehicles?category=${v.category}&make=${encodeURIComponent(v.specs.make)}`}
             className="text-sm font-bold text-primary hover:underline"
           >
             {t("featured.viewAll")}

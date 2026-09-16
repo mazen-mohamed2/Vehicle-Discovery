@@ -45,7 +45,7 @@ export function FavoritesClient() {
       (vehicle) =>
         favoriteById.has(vehicle.id) &&
         (!term ||
-          [vehicle.title, vehicle.make, vehicle.model].some((value) =>
+          [vehicle.title, vehicle.specs.make, vehicle.specs.model].some((value) =>
             value.toLocaleLowerCase().includes(term),
           )),
     );

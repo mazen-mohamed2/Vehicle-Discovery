@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import type { VehicleListing } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { formatCurrency, formatMileage, formatYear } from "@/lib/locale";
+import { formatCurrency, formatYear } from "@/lib/locale";
+import { listingCategoryRegistry, listingSummary } from "@/lib/marketplace-listing";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useCompare } from "@/hooks/use-compare";
@@ -18,11 +19,16 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
   const { t, locale } = useI18n();
   const { isFavorite, toggleFavorite, isHydrating, togglingListingId } = useFavorites();
   const fav = isFavorite(v.id);
-  const { isCompared, toggleCompare, isHydrating: compareHydrating } = useCompare();
+  const {
+    isCompared,
+    toggleCompare,
+    canCompareListing,
+    isHydrating: compareHydrating,
+  } = useCompare();
   const compared = isCompared(v.id);
 
   const priceFmt = formatCurrency(v.price, v.currency, locale);
-  const mileage = formatMileage(v.mileage, locale, t("card.km"));
+  const summary = listingSummary(v, t, locale);
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-2xl surface-card shadow-card transition-all hover:-translate-y-1 hover:shadow-elegant">
@@ -84,7 +90,10 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
                 type="button"
                 onClick={() => {
                   const changed = toggleCompare(v.id);
-                  if (!changed) toast.error(t("compare.limit"));
+                  if (!changed)
+                    toast.error(
+                      t(canCompareListing(v.id) ? "compare.limit" : "category.compareSame"),
+                    );
                   else toast.success(t(compared ? "compare.removed" : "compare.added"));
                 }}
                 aria-label={t(compared ? "compare.remove" : "compare.add")}
@@ -124,15 +133,18 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
               </Link>
             </h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {formatYear(v.year, locale)} · {v.make}
+              {formatYear(v.year, locale)} · {t(listingCategoryRegistry[v.category].labelKey)} ·{" "}
+              {v.specs.make}
             </p>
           </div>
         </div>
-        <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Gauge className="h-3.5 w-3.5" />
-            {mileage}
-          </span>
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          {summary.map((fact, index) => (
+            <span key={`${index}-${fact}`} className="inline-flex items-center gap-1">
+              {index === 0 && <Gauge className="h-3.5 w-3.5" aria-hidden="true" />}
+              {fact}
+            </span>
+          ))}
           <span className="inline-flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" />
             {v.location}
