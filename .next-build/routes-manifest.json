@@ -68,6 +68,14 @@
       "namedRegex": "^/messages/(?<nxtPconversationId>[^/]+?)(?:/)?$"
     },
     {
+      "page": "/sellers/[userId]",
+      "regex": "^/sellers/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuserId": "nxtPuserId"
+      },
+      "namedRegex": "^/sellers/(?<nxtPuserId>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/vehicles/[id]",
       "regex": "^/vehicles/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -138,6 +146,18 @@
       "namedRegex": "^/account/received\\-offers(?:/)?$"
     },
     {
+      "page": "/account/reports",
+      "regex": "^/account/reports(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/account/reports(?:/)?$"
+    },
+    {
+      "page": "/account/verification",
+      "regex": "^/account/verification(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/account/verification(?:/)?$"
+    },
+    {
       "page": "/auth/forgot-password",
       "regex": "^/auth/forgot\\-password(?:/)?$",
       "routeKeys": {},
@@ -202,6 +222,18 @@
       "regex": "^/dealer\\-account/received\\-offers(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/dealer\\-account/received\\-offers(?:/)?$"
+    },
+    {
+      "page": "/dealer-account/reports",
+      "regex": "^/dealer\\-account/reports(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dealer\\-account/reports(?:/)?$"
+    },
+    {
+      "page": "/dealer-account/verification",
+      "regex": "^/dealer\\-account/verification(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dealer\\-account/verification(?:/)?$"
     },
     {
       "page": "/dealers",
