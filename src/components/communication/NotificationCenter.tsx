@@ -43,6 +43,7 @@ export function NotificationCenter() {
           <ol className="mt-6 grid gap-3">
             {state.notifications.map((notification) => {
               let listingId: string | undefined;
+              let eventHref = notification.href;
               const hasListingContext =
                 notification.type === "NEW_MESSAGE" ||
                 notification.type === "NEW_VEHICLE_OFFER" ||
@@ -50,19 +51,23 @@ export function NotificationCenter() {
                 notification.type === "VEHICLE_OFFER_REJECTED" ||
                 notification.type === "VEHICLE_OFFER_WITHDRAWN";
               try {
-                listingId = state.actor
-                  ? marketplaceCommunicationService.listingIdForNotification(
-                      state.actor,
-                      notification,
-                    )
-                  : undefined;
+                if (state.actor) {
+                  eventHref = marketplaceCommunicationService.destinationForNotification(
+                    state.actor,
+                    notification,
+                  );
+                  listingId = marketplaceCommunicationService.listingIdForNotification(
+                    state.actor,
+                    notification,
+                  );
+                }
               } catch {
                 listingId = undefined;
               }
               return (
-                <li key={notification.id} className="rounded-2xl surface-card p-4 shadow-card">
+                <li key={notification.id} className="rounded-xl surface-card p-3 shadow-card">
                   <Link
-                    href={notification.href}
+                    href={eventHref}
                     onClick={() => void state.markRead(notification.id)}
                     className="block rounded-lg p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
@@ -86,8 +91,9 @@ export function NotificationCenter() {
                   {hasListingContext && (
                     <ListingContext
                       listingId={listingId ?? notification.relatedId}
-                      className="mt-3"
+                      className="mt-2"
                       showPrice={false}
+                      compact
                     />
                   )}
                 </li>

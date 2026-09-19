@@ -12,8 +12,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useManagedListings } from "@/hooks/use-managed-listings";
 import { useI18n } from "@/lib/i18n";
-import { validateListing, validateListingStep } from "@/lib/listing-validators";
-import type { ListingImage, ListingStep, ManagedListing } from "@/lib/listing";
+import {
+  firstInvalidListingStep,
+  validateListing,
+  validateListingStep,
+} from "@/lib/listing-validators";
+import {
+  appendListingImages,
+  removeListingImage,
+  setListingCover,
+  type ListingImage,
+  type ListingStep,
+  type ManagedListing,
+} from "@/lib/listing";
 import { managedListingsService } from "@/services/managed-listings.service";
 import { categoryFormFields, type CategoryField } from "@/lib/category-form";
 import { listingCategoryRegistry } from "@/lib/marketplace-listing";
@@ -39,7 +50,6 @@ export function ListingWizard({ listingId }: { listingId: string }) {
   const [step, setStep] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const lastSaved = useRef("");
-  const imagesAtUnmount = useRef<ListingImage[]>([]);
   useEffect(() => {
     if (data.listing && !draft) {
       setDraft(data.listing);
@@ -76,10 +86,6 @@ export function ListingWizard({ listingId }: { listingId: string }) {
     }, 600);
     return () => window.clearTimeout(timer);
   }, [draft, listingId, t, updateListing]);
-  useEffect(() => {
-    imagesAtUnmount.current = draft?.images ?? [];
-  }, [draft?.images]);
-  useEffect(() => () => imagesAtUnmount.current.forEach(managedListingsService.revokeImage), []);
   const active = steps[step];
   if (data.isError)
     return (
@@ -137,14 +143,13 @@ export function ListingWizard({ listingId }: { listingId: string }) {
       set("currentStep", steps[target]);
       return;
     }
-    for (let index = step; index < target; index += 1) {
-      const currentErrors = validateListingStep(draft, steps[index]);
-      if (Object.keys(currentErrors).length) {
-        setStep(index);
-        set("currentStep", steps[index]);
-        revealErrors(currentErrors);
-        return;
-      }
+    const blocked = firstInvalidListingStep(draft, steps.slice(step, target));
+    if (blocked) {
+      const blockedIndex = steps.indexOf(blocked.step);
+      setStep(blockedIndex);
+      set("currentStep", blocked.step);
+      revealErrors(blocked.fields);
+      return;
     }
     setErrors({});
     setStep(target);
@@ -381,7 +386,7 @@ export function ListingWizard({ listingId }: { listingId: string }) {
                     onChange={(v) => setSpec("importStatus", v)}
                     options={["local", "imported", "unknown"]}
                   />
-                  <Field label={t("vehicle.vin")} htmlFor="listing-vin">
+                  <Field label={t("vehicle.vin")} htmlFor="listing-vin" required>
                     <Input
                       id="listing-vin"
                       value={draft.vin ?? ""}
@@ -645,14 +650,9 @@ function Photos({
   const add = (files: FileList | null) => {
     if (!files) return;
     try {
+      if (draft.images.length + files.length > 12) throw new Error("IMAGE_LIMIT_EXCEEDED");
       setImages(
-        [...draft.images, ...managedListingsService.temporaryImages([...files])]
-          .slice(0, 12)
-          .map((image, order) => ({
-            ...image,
-            order,
-            isCover: draft.images.length ? image.isCover : order === 0,
-          })),
+        appendListingImages(draft.images, managedListingsService.temporaryImages([...files]), 12),
       );
     } catch {
       toast.error(t("listing.image.invalid"));
@@ -661,12 +661,7 @@ function Photos({
   const remove = (id: string) => {
     const target = draft.images.find((image) => image.id === id);
     if (target) managedListingsService.revokeImage(target);
-    const next = draft.images
-      .filter((image) => image.id !== id)
-      .map((image, order) => ({ ...image, order }));
-    if (next.length && !next.some((image) => image.isCover))
-      next[0] = { ...next[0], isCover: true };
-    setImages(next);
+    setImages(removeListingImage(draft.images, id));
   };
   const move = (index: number, offset: number) => {
     const target = index + offset;
@@ -719,7 +714,18 @@ function Photos({
       {message}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {draft.images.map((image, index) => (
-          <figure key={image.id} className="rounded-lg border p-3">
+          <figure
+            key={image.id}
+            className={`relative rounded-xl border p-3 ${
+              image.isCover ? "border-2 border-primary bg-primary/5 shadow-sm" : "border-border"
+            }`}
+          >
+            {image.isCover && (
+              <span className="absolute end-5 top-5 z-10 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground shadow">
+                <span aria-hidden="true">✓</span>
+                {t("listing.image.cover")}
+              </span>
+            )}
             <div className="relative aspect-video overflow-hidden rounded">
               <Image
                 src={image.url}
@@ -739,13 +745,11 @@ function Photos({
                 size="sm"
                 variant="outline"
                 className="min-h-10 flex-1"
-                onClick={() =>
-                  setImages(
-                    draft.images.map((item) => ({ ...item, isCover: item.id === image.id })),
-                  )
-                }
+                disabled={image.isCover}
+                aria-pressed={image.isCover}
+                onClick={() => setImages(setListingCover(draft.images, image.id))}
               >
-                {t("listing.image.makeCover")}
+                {t(image.isCover ? "listing.image.cover" : "listing.image.makeCover")}
               </Button>
               <Button
                 type="button"

@@ -42,6 +42,7 @@ const listingAr = {
   "listing.validation.minimum": "أضف وصفاً من 30 حرفاً على الأقل.",
   "listing.validation.invalid": "القيمة غير صحيحة.",
   "listing.validation.cover": "اختر صورة غلاف واحدة فقط.",
+  "listing.validation.photoRequired": "اختر صورة واحدة على الأقل للمتابعة.",
   "listing.error.summary": "تعذر متابعة الخطوة",
   "listing.error.correct": "راجع الحقول الموضحة ثم حاول مرة أخرى.",
   "listing.error.save": "تعذر حفظ المسودة.",
@@ -103,10 +104,11 @@ const listingAr = {
   "listing.image.down": "نقل الصورة لأسفل",
   "listing.image.none": "لا توجد صورة",
   "listing.image.useDemo": "استخدام صورة تجريبية اختيارية (للتطوير)",
-  "listing.image.guidance": "اختر حتى 12 صورة بصيغة JPG أو PNG أو WebP. الصور اختيارية حالياً.",
+  "listing.image.guidance":
+    "اختر صورة واحدة على الأقل، وبحد أقصى 12 صورة بصيغة JPG أو PNG أو WebP.",
   "listing.image.count": "الصور المحددة: {count}",
   "listing.image.emptyTitle": "لم تحدد أي صور",
-  "listing.image.emptyDescription": "يمكنك المتابعة والنشر دون صور في النسخة الحالية.",
+  "listing.image.emptyDescription": "اختر صورة واحدة على الأقل قبل الانتقال إلى الخطوة التالية.",
 } as const;
 
 const listingEn: Record<keyof typeof listingAr, string> = {
@@ -144,6 +146,7 @@ const listingEn: Record<keyof typeof listingAr, string> = {
   "listing.validation.minimum": "Add a description of at least 30 characters.",
   "listing.validation.invalid": "The value is invalid.",
   "listing.validation.cover": "Select exactly one cover image.",
+  "listing.validation.photoRequired": "Select at least one photo to continue.",
   "listing.error.summary": "This step needs attention",
   "listing.error.correct": "Review the highlighted fields and try again.",
   "listing.error.save": "The draft could not be saved.",
@@ -205,12 +208,10 @@ const listingEn: Record<keyof typeof listingAr, string> = {
   "listing.image.down": "Move image down",
   "listing.image.none": "No image",
   "listing.image.useDemo": "Use an optional demo image (development)",
-  "listing.image.guidance":
-    "Select up to 12 JPG, PNG, or WebP images. Photos are currently optional.",
+  "listing.image.guidance": "Select at least one and up to 12 JPG, PNG, or WebP images.",
   "listing.image.count": "Selected images: {count}",
   "listing.image.emptyTitle": "No images selected",
-  "listing.image.emptyDescription":
-    "You can continue and publish without photos in the current version.",
+  "listing.image.emptyDescription": "Select at least one photo before continuing to the next step.",
 };
 
 const importFlowAr = {

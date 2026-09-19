@@ -368,14 +368,14 @@ test("vehicle gallery supports navigation, swipe, fullscreen, loading, and fallb
     assert.match(gallery, new RegExp(label.replaceAll(".", "\\.")));
 });
 
-test("zero-photo listings use safe shared fallbacks and photos are not publish-required", async () => {
+test("the current wizard requires a photo while shared missing-image fallbacks remain safe", async () => {
   const validators = await read("src/lib/listing-validators.ts");
   const wizard = await read("src/components/listings/ListingWizard.tsx");
   const card = await read("src/components/marketplace/VehicleCard.tsx");
   const gallery = await read("src/app/(site)/vehicles/[id]/vehicle-gallery.tsx");
   const compare = await read("src/app/(site)/compare/compare-client.tsx");
-  assert.doesNotMatch(validators, /fields\.images = "required"/);
-  assert.doesNotMatch(validators, /listing\.images\.length,\s*\]/);
+  assert.match(validators, /listing\.images\.length === 0/);
+  assert.match(validators, /fields\.images = "photoRequired"/);
   assert.match(wizard, /"review",/);
   assert.match(wizard, /active === "review"/);
   assert.match(wizard, /listing\.image\.useDemo/);

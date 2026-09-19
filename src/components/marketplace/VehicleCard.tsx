@@ -38,6 +38,7 @@ export function VehicleCard({ v }: { v: VehicleListing }) {
             src={v.images[0].url}
             alt={v.images[0].alt}
             fill
+            unoptimized={v.images[0].url.startsWith("blob:")}
             sizes="(min-width: 1280px) 22vw, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, 90vw"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />

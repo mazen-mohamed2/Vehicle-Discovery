@@ -23,6 +23,13 @@ export const LISTING_STORAGE_SCHEMA_VERSION = 2;
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const sessionImages = new Map<string, ListingImage[]>();
 
+function sessionImagesForListing(listingId: string) {
+  for (const [sessionKey, images] of sessionImages) {
+    if (sessionKey.endsWith(`:${listingId}`)) return images;
+  }
+  return [];
+}
+
 export function listingOwner(user: AuthUser | null | undefined): ListingOwner {
   if (!user) throw new ListingServiceError("UNAUTHENTICATED");
   return {
@@ -145,12 +152,12 @@ function write(scope: StorageScope, listings: ManagedListing[]) {
   const target = storage();
   if (!target) return;
   try {
-    listings.forEach((listing) =>
-      sessionImages.set(
-        `${scope}:${listing.id}`,
-        listing.images.filter((image) => image.temporary),
-      ),
-    );
+    listings.forEach((listing) => {
+      const sessionKey = `${scope}:${listing.id}`;
+      const temporary = listing.images.filter((image) => image.temporary);
+      if (temporary.length) sessionImages.set(sessionKey, temporary);
+      else sessionImages.delete(sessionKey);
+    });
     const safe = listings.map((listing) => ({
       ...listing,
       images: listing.images
@@ -432,6 +439,8 @@ export const managedListingsService = {
     const current = owned(owner, id);
     if (!(["draft", "archived"] as ListingStatus[]).includes(current.status))
       throw new ListingServiceError("INVALID_STATUS_TRANSITION");
+    current.images.filter((image) => image.temporary).forEach(this.revokeImage);
+    sessionImages.delete(`${owner.scope}:${id}`);
     const next = read(owner.scope).filter((item) => item.id !== id);
     write(owner.scope, next);
     writePublic(owner, next);
@@ -440,6 +449,12 @@ export const managedListingsService = {
     try {
       return parse(storage()?.getItem(PUBLIC_KEY) ?? null, PUBLIC_KEY)
         .filter((item) => item.status === "published")
+        .map((item) => ({
+          ...item,
+          images: [...item.images, ...sessionImagesForListing(item.id)].sort(
+            (a, b) => a.order - b.order,
+          ),
+        }))
         .map(toPublicVehicle);
     } catch {
       return [];

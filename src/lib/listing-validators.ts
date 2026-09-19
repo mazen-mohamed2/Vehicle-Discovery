@@ -60,7 +60,8 @@ function validateHistory(listing: ManagedListing): Errors {
   const fields: Errors = {};
   if (listing.category === "CAR") {
     const vin = (listing.specs as CategorySpecs["CAR"]).vin;
-    if (vin && !VIN.test(vin)) fields.vin = "invalid";
+    if (!vin?.trim()) fields.vin = "required";
+    else if (!VIN.test(vin)) fields.vin = "invalid";
   }
   return fields;
 }
@@ -75,9 +76,8 @@ function validateCommercial(listing: ManagedListing): Errors {
 
 function validatePhotos(listing: ManagedListing): Errors {
   const fields: Errors = {};
-  const durableImages = listing.images.filter((image) => !image.temporary);
-  if (durableImages.length > 0 && durableImages.filter((image) => image.isCover).length !== 1)
-    fields.images = "cover";
+  if (listing.images.length === 0) fields.images = "photoRequired";
+  else if (listing.images.filter((image) => image.isCover).length !== 1) fields.images = "cover";
   return fields;
 }
 
@@ -104,6 +104,17 @@ export function validateListingStep(listing: ManagedListing, step: ListingStep):
   if (step === "photos") return validatePhotos(listing);
   if (step === "declarations") return validateDeclarations(listing);
   return {};
+}
+
+export function firstInvalidListingStep(
+  listing: ManagedListing,
+  candidateSteps: readonly ListingStep[],
+) {
+  for (const step of candidateSteps) {
+    const fields = validateListingStep(listing, step);
+    if (Object.keys(fields).length) return { step, fields };
+  }
+  return undefined;
 }
 
 export function validateListing(listing: ManagedListing, publishing = false) {
@@ -137,7 +148,14 @@ export function assertPublishable(listing: ManagedListing) {
 }
 
 export function calculateCompletion(listing: ManagedListing) {
-  const requiredSteps = ["basics", "specifications", "commercial", "declarations"] as const;
+  const requiredSteps = [
+    "basics",
+    "specifications",
+    "history",
+    "commercial",
+    "photos",
+    "declarations",
+  ] as const;
   const complete = requiredSteps.filter(
     (step) => Object.keys(validateListingStep(listing, step)).length === 0,
   ).length;

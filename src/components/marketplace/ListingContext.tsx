@@ -12,22 +12,30 @@ export function ListingContext({
   listingId,
   className,
   showPrice = true,
+  compact = false,
 }: {
   listingId: string;
   className?: string;
   showPrice?: boolean;
+  compact?: boolean;
 }) {
   const { t, locale } = useI18n();
   const context = listingContextService.resolve(listingId);
   const body = (
     <>
-      <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-lg bg-muted sm:w-28">
+      <div
+        className={cn(
+          "relative shrink-0 overflow-hidden rounded-lg bg-muted",
+          compact ? "h-14 w-16" : "h-20 w-24 sm:w-28",
+        )}
+      >
         {context.thumbnail ? (
           <Image
             src={context.thumbnail}
             alt={context.thumbnailAlt || context.title || t("listing.context.unavailable")}
             fill
-            sizes="112px"
+            unoptimized={context.thumbnail.startsWith("blob:")}
+            sizes={compact ? "64px" : "112px"}
             className="object-cover"
           />
         ) : (
@@ -59,7 +67,8 @@ export function ListingContext({
     </>
   );
   const classes = cn(
-    "flex min-w-0 items-center gap-3 rounded-xl border border-border bg-background/60 p-3",
+    "flex min-w-0 items-center gap-3 rounded-xl border border-border bg-background/60",
+    compact ? "p-2" : "p-3",
     className,
   );
   return context.href ? (

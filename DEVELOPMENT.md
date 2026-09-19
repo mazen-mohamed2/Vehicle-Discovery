@@ -128,7 +128,7 @@ This browser mock has an important server-rendering limitation: LocalStorage rec
 
 ## Images and future backend boundaries
 
-No real files are uploaded. Selected JPEG, PNG, and WebP files are validated (12 images maximum, 8 MB each) and represented by temporary Object URLs for the current tab. Blob/Object URLs and binary/base64 content are stripped before LocalStorage writes and are revoked on removal or wizard unmount. They do not survive a browser restart. Photos are optional for publishing under the frontend-only Sprint 7 policy; the demo-image action is an optional development convenience and is never assigned automatically. Persistent-media photo requirements will be restored when the real upload backend exists, without inventing a final production minimum during this sprint. A future upload repository should replace temporary URL creation with signed upload requests and persist only returned server asset IDs/URLs.
+No real files are uploaded. Selected JPEG, PNG, and WebP files are validated (12 images maximum, 8 MB each) and represented by temporary Object URLs for the current tab. The current create/edit wizard requires at least one selected photo before leaving the Photos step or publishing. Blob/Object URLs and binary/base64 content are stripped before LocalStorage writes; active URLs remain available to the draft and public client catalog for the current runtime and are revoked when explicitly removed or when the listing is deleted. They do not survive a browser restart. The demo-image action is an optional development convenience and is never assigned automatically. The backend media phase must enforce its final production photo policy using durable `MediaAsset` records; that minimum has not been selected here. A future upload repository should replace temporary URL creation with signed upload requests and persist only returned server asset IDs/URLs.
 
 No identity documents, vehicle documents, passwords, or security tokens are stored by the listing workflow. Vehicle and ownership verification statuses are future integration placeholders and never cause the UI to claim verification. A future moderation service can return `pending` from the existing publish boundary without changing component APIs. Future KYC and vehicle-document verification must use secure server storage and separate authorization policies.
 
@@ -401,3 +401,15 @@ thumbnails are local static assets. Future backend media may use authorized asse
 by an object store/CDN, but no provider has been selected and no upload API, object-storage
 integration, or Socket.IO transport is implemented here. Quick Preview is intentionally deferred;
 context is visible immediately and full details remain one accessible link away.
+
+The second QA pass keeps temporary media alive only for the active browser runtime: publishing and
+client navigation do not revoke a selected preview, while reload/restart truthfully loses it because
+no binary is persisted. Fixture images remain attached only to their fixture IDs; a user-created
+listing resolves its own session image or the generic missing-image presentation. Cover selection is
+normalized to exactly one image and drives managed previews and public projections.
+
+Notifications are event-first. `NEW_MESSAGE` resolves to its authorized conversation, vehicle-offer
+events resolve to the existing received/my-offers destination, and Listing Details remains a separate
+secondary action supplied by the shared Listing Context. Conversation and Offer records continue to
+resolve that context from the canonical public catalog and remain visible with an unavailable fallback
+when the listing cannot be resolved.

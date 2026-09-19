@@ -47,6 +47,20 @@ const shared = {
   price: 250000,
   location: "Cairo",
   description: "A well maintained listing with all required information available.",
+  images: [
+    {
+      id: "selected-image",
+      url: "blob:selected-image",
+      previewUrl: "blob:selected-image",
+      name: "selected.jpg",
+      type: "image/jpeg",
+      size: 1024,
+      order: 0,
+      isCover: true,
+      createdAt: "2026-09-19T10:00:00.000Z",
+      temporary: true,
+    },
+  ],
   declarations: {
     informationAccuracyAccepted: true,
     ownershipOrAuthorizationAccepted: true,
@@ -124,7 +138,10 @@ test("motorcycle and boat drafts publish with category-specific specs and stable
   );
   assert.deepEqual(
     publicListings.map((item) => item.images),
-    [[], []],
+    [
+      [{ id: "selected-image", url: "blob:selected-image", alt: "selected.jpg" }],
+      [{ id: "selected-image", url: "blob:selected-image", alt: "selected.jpg" }],
+    ],
   );
   assert.equal(publicListings[1].specs.lengthMeters, 6.2);
   assert.equal("mileage" in publicListings[1].specs, false);
@@ -197,6 +214,7 @@ test("legacy flat car records migrate once without changing IDs or linked public
     mileage: 12345,
     transmission: "automatic",
     fuelType: "gasoline",
+    vin: "1HGCM82633A004352",
     images: [
       {
         id: "legacy-photo",
@@ -599,9 +617,11 @@ test("category listings retain listing verification and report authorization", (
   }
 });
 
-test("wizard step validation gates CAR fields immediately and accepts corrected canonical values", () => {
+test("wizard step validation requires and validates CAR VIN before History can advance", () => {
   const { managedListingsService: service } = setup();
-  const { validateListing, validateListingStep } = loadTypeScript("src/lib/listing-validators.ts");
+  const { firstInvalidListingStep, validateListing, validateListingStep } = loadTypeScript(
+    "src/lib/listing-validators.ts",
+  );
   const draft = service.createDraft(owner, "CAR");
   assert.deepEqual(validateListingStep(draft, "basics"), {
     make: "required",
@@ -623,10 +643,23 @@ test("wizard step validation gates CAR fields immediately and accepts corrected 
     },
   });
   assert.deepEqual(validateListingStep(mileage, "specifications"), {});
+  assert.equal(validateListingStep(mileage, "history").vin, "required");
+  const explicitEmptyVin = service.updateDraft(owner, draft.id, {
+    specs: { ...mileage.specs, vin: "" },
+  });
+  assert.equal(validateListingStep(explicitEmptyVin, "history").vin, "required");
+  assert.equal(
+    firstInvalidListingStep(explicitEmptyVin, ["history", "commercial"]).step,
+    "history",
+  );
   const badVin = service.updateDraft(owner, draft.id, {
     specs: { ...mileage.specs, vin: "INVALID" },
   });
   assert.equal(validateListingStep(badVin, "history").vin, "invalid");
+  const forbiddenCharacters = service.updateDraft(owner, draft.id, {
+    specs: { ...mileage.specs, vin: "1HGCM82633A00IOQ2" },
+  });
+  assert.equal(validateListingStep(forbiddenCharacters, "history").vin, "invalid");
   const goodVin = service.updateDraft(owner, draft.id, {
     specs: { ...badVin.specs, vin: "1HGCM82633A004352" },
   });
@@ -637,6 +670,7 @@ test("wizard step validation gates CAR fields immediately and accepts corrected 
     price: shared.price,
     location: shared.location,
     description: shared.description,
+    images: shared.images,
     declarations: shared.declarations,
   });
   assert.deepEqual(validateListingStep(corrected, "commercial"), {});
@@ -695,6 +729,31 @@ test("wizard step validation is category-specific for motorcycle and recreationa
   });
   assert.deepEqual(validateListingStep(boatValid, "specifications"), {});
   assert.equal("mileage" in boatValid.specs, false);
+  for (const listing of [motorcycleValid, boatValid]) {
+    assert.equal(validateListingStep({ ...listing, images: [] }, "photos").images, "photoRequired");
+    assert.deepEqual(validateListingStep({ ...listing, images: shared.images }, "photos"), {});
+  }
+});
+
+test("photo operations keep exactly one visible cover and promote a replacement on removal", () => {
+  setup();
+  const { appendListingImages, removeListingImage, setListingCover } =
+    loadTypeScript("src/lib/listing.ts");
+  const first = { ...shared.images[0], id: "first", isCover: true };
+  const second = { ...shared.images[0], id: "second", isCover: true };
+  const appended = appendListingImages([first], [second], 12);
+  assert.equal(appended.filter((image) => image.isCover).length, 1);
+  assert.equal(appended.find((image) => image.isCover).id, "first");
+  const changed = setListingCover(appended, "second");
+  assert.equal(changed.find((image) => image.isCover).id, "second");
+  assert.deepEqual(
+    changed.map((image) => image.order),
+    [0, 1],
+  );
+  const removed = removeListingImage(changed, "second");
+  assert.equal(removed.length, 1);
+  assert.equal(removed[0].id, "first");
+  assert.equal(removed[0].isCover, true);
 });
 
 test("representative category fixtures and shared listing context resolve usable presentation", async () => {
@@ -746,10 +805,22 @@ test("notifications resolve listing context through conversation and offer IDs w
   communication.sendMessage(buyer, conversation.id, "Is it available?");
   const messageNotification = notifications.list(seller)[0];
   assert.equal(communication.listingIdForNotification(seller, messageNotification), "moto1");
+  assert.equal(
+    communication.destinationForNotification(seller, messageNotification),
+    `/messages/${conversation.id}`,
+  );
+  assert.notEqual(
+    communication.destinationForNotification(seller, messageNotification),
+    "/vehicles/moto1",
+  );
   const offer = communication.createOffer(buyer, "moto1", { amount: 400000, currency: "EGP" });
   const offerNotification = notifications.list(seller).find((item) => item.relatedId === offer.id);
   assert.ok(offerNotification);
   assert.equal(communication.listingIdForNotification(seller, offerNotification), "moto1");
+  assert.equal(
+    communication.destinationForNotification(seller, offerNotification),
+    "/account/received-offers",
+  );
   assert.equal("listing" in offerNotification, false);
   assert.equal("image" in offerNotification, false);
 
@@ -757,6 +828,7 @@ test("notifications resolve listing context through conversation and offer IDs w
   const accepted = notifications.list(buyer).find((item) => item.relatedId === offer.id);
   assert.ok(accepted);
   assert.equal(communication.listingIdForNotification(buyer, accepted), "moto1");
+  assert.equal(communication.destinationForNotification(buyer, accepted), "/account/offers");
 
   const rejectedOffer = communication.createOffer(buyer, "boat1", {
     amount: 1700000,
@@ -766,6 +838,7 @@ test("notifications resolve listing context through conversation and offer IDs w
   const rejected = notifications.list(buyer).find((item) => item.relatedId === rejectedOffer.id);
   assert.ok(rejected);
   assert.equal(communication.listingIdForNotification(buyer, rejected), "boat1");
+  assert.equal(communication.destinationForNotification(buyer, rejected), "/account/offers");
 
   const withdrawnOffer = communication.createOffer(buyer, "v1", {
     amount: 2000000,
@@ -779,4 +852,8 @@ test("notifications resolve listing context through conversation and offer IDs w
     );
   assert.ok(withdrawn);
   assert.equal(communication.listingIdForNotification(dealer, withdrawn), "v1");
+  assert.equal(
+    communication.destinationForNotification(dealer, withdrawn),
+    "/dealer-account/received-offers",
+  );
 });

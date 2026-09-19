@@ -55,6 +55,7 @@ function complete(service, owner, id, withImage = true) {
     mileage: 1000,
     transmission: "automatic",
     fuelType: "gasoline",
+    vin: "1HGCM82633A004352",
     price: 900000,
     location: "Cairo",
     description: "A carefully maintained vehicle with complete service history.",
@@ -110,7 +111,7 @@ test("incomplete drafts save but cannot publish", () => {
       error instanceof ListingServiceError && error.code === "PUBLISH_REQUIREMENTS_NOT_MET",
   );
 });
-test("publishing still requires declarations but does not require an image", () => {
+test("publishing requires declarations, VIN, and a photo", () => {
   const { managedListingsService: service } = setup();
   const draft = service.createDraft(userA);
   service.updateDraft(userA, draft.id, {
@@ -120,27 +121,28 @@ test("publishing still requires declarations but does not require an image", () 
     mileage: 0,
     transmission: "automatic",
     fuelType: "gasoline",
+    vin: "1HGCM82633A004352",
     price: 1,
     location: "Cairo",
     description: "A complete description long enough for publication.",
   });
   assert.throws(
     () => service.publishListing(userA, draft.id),
-    (error) => error.fields.images === undefined && error.fields.declarations === "required",
+    (error) => error.fields.images === "photoRequired" && error.fields.declarations === "required",
   );
 });
-test("a complete zero-photo draft reaches full completion and publishes with empty media", () => {
+test("a zero-photo draft is blocked at the Photos step and cannot publish", () => {
   const { managedListingsService: service } = setup();
+  const { validateListingStep } = loadTypeScript("src/lib/listing-validators.ts");
   const draft = service.createDraft(userA);
   const completed = complete(service, userA, draft.id, false);
-  assert.equal(completed.completionPercentage, 100);
+  assert.equal(validateListingStep(completed, "photos").images, "photoRequired");
+  assert.ok(completed.completionPercentage < 100);
   assert.deepEqual(completed.images, []);
-  const published = service.publishListing(userA, draft.id);
-  assert.equal(published.status, "published");
-  assert.deepEqual(published.images, []);
-  const publicListing = service.publicListings().find((item) => item.id === draft.id);
-  assert.ok(publicListing);
-  assert.deepEqual(publicListing.images, []);
+  assert.throws(
+    () => service.publishListing(userA, draft.id),
+    (error) => error.fields.images === "photoRequired",
+  );
 });
 test("the optional demo image remains supported but is never assigned automatically", () => {
   const { managedListingsService: service } = setup();
@@ -274,6 +276,32 @@ test("temporary image object URLs are revoked and never persisted", () => {
   assert.equal(revoked, "blob:temporary");
   assert.equal(localStorage.getItem("sd-owned-listings:user:a").includes("blob:temporary"), false);
   globalThis.URL = original;
+});
+
+test("a selected local image remains the public listing image for the active runtime", () => {
+  const { managedListingsService: service, localStorage } = setup();
+  const draft = service.createDraft(userA);
+  complete(service, userA, draft.id, false);
+  const selected = {
+    id: "local-cover",
+    url: "blob:user-selected",
+    previewUrl: "blob:user-selected",
+    name: "my-vehicle.jpg",
+    type: "image/jpeg",
+    size: 2048,
+    order: 0,
+    isCover: true,
+    createdAt: new Date().toISOString(),
+    temporary: true,
+  };
+  service.updateDraft(userA, draft.id, { images: [selected] });
+  service.publishListing(userA, draft.id);
+  const publicListing = service.publicListings().find((item) => item.id === draft.id);
+  assert.equal(publicListing.images[0].url, "blob:user-selected");
+  assert.notEqual(publicListing.images[0].url, "/assets/car-1.jpg");
+  assert.equal(localStorage.getItem("sd-published-listings").includes("blob:user-selected"), false);
+  const { listingContextService } = loadTypeScript("src/services/listing-context.service.ts");
+  assert.equal(listingContextService.resolve(draft.id).thumbnail, "blob:user-selected");
 });
 
 function discoveryParams(q) {

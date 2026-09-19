@@ -90,7 +90,7 @@ test("wizard gates every step and exposes accessible inline photo and validation
   assert.match(validators, /step === "basics"/);
   assert.match(validators, /step === "specifications"/);
   assert.match(validators, /step === "declarations"/);
-  assert.match(wizard, /validateListingStep\(draft, steps\[index\]\)/);
+  assert.match(wizard, /firstInvalidListingStep\(draft, steps\.slice\(step, target\)\)/);
   assert.match(wizard, /navigateTo\(index\)/);
   assert.match(wizard, /querySelector<HTMLElement>\('\[aria-invalid="true"\]'/);
   assert.match(wizard, /currentValidation\[name\]/);
@@ -114,7 +114,13 @@ test("shared listing context is used by chat offers and notifications without re
   assert.match(conversation, /<ListingContext listingId=\{workflow\.conversation\.listingId\}/);
   assert.match(offers, /<ListingContext listingId=\{offer\.listingId\}/);
   assert.match(notifications, /listingIdForNotification/);
+  assert.match(notifications, /destinationForNotification/);
+  assert.match(notifications, /compact/);
   assert.match(notifications, /<ListingContext/);
+  assert.ok(
+    notifications.indexOf("</Link>") < notifications.indexOf("<ListingContext"),
+    "the secondary listing link must be a sibling, not nested inside the event link",
+  );
   assert.doesNotMatch(communicationDomain, /listingSnapshot|imageBase64|imageBinary/);
   assert.doesNotMatch(`${context}${conversation}${offers}${notifications}`, /QuickPreview/);
 });

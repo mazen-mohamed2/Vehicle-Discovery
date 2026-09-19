@@ -185,6 +185,7 @@ export function CompareClient() {
                             src={vehicle.images[0].url}
                             alt={vehicle.images[0].alt}
                             fill
+                            unoptimized={vehicle.images[0].url.startsWith("blob:")}
                             sizes="224px"
                             className="object-cover"
                           />
@@ -260,6 +261,7 @@ export function CompareClient() {
               src={vehicle.images[0].url}
               alt={vehicle.images[0].alt}
               fill
+              unoptimized={vehicle.images[0].url.startsWith("blob:")}
               sizes="448px"
               className="object-cover"
             />

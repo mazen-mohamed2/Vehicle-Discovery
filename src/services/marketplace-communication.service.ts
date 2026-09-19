@@ -113,6 +113,35 @@ const buyerOffersHref = (userId: string) =>
     : "/account/offers";
 
 export const marketplaceCommunicationService = {
+  destinationForNotification(
+    actor: CommunicationActor,
+    notification: WebsiteNotificationRecord,
+  ): string {
+    if (notification.recipientUserId !== actor.id) throw new CommunicationError("FORBIDDEN");
+    if (notification.type === "NEW_MESSAGE") {
+      conversationFor(actor, notification.relatedId);
+      return `/messages/${notification.relatedId}`;
+    }
+    if (
+      notification.type === "NEW_VEHICLE_OFFER" ||
+      notification.type === "VEHICLE_OFFER_ACCEPTED" ||
+      notification.type === "VEHICLE_OFFER_REJECTED" ||
+      notification.type === "VEHICLE_OFFER_WITHDRAWN"
+    ) {
+      const offer = offerFor(notification.relatedId);
+      if (offer.buyerUserId !== actor.id && offer.sellerUserId !== actor.id)
+        throw new CommunicationError("FORBIDDEN");
+      if (
+        notification.type === "NEW_VEHICLE_OFFER" ||
+        notification.type === "VEHICLE_OFFER_WITHDRAWN"
+      )
+        return actor.role === "dealer"
+          ? "/dealer-account/received-offers"
+          : "/account/received-offers";
+      return buyerOffersHref(actor.id);
+    }
+    return notification.href;
+  },
   listingIdForNotification(
     actor: CommunicationActor,
     notification: WebsiteNotificationRecord,
@@ -318,7 +347,14 @@ export const marketplaceCommunicationService = {
       OFFERS_KEY,
       offers().map((item) => (item.id === id ? updated : item)),
     );
-    notificationsService.create(offer.sellerUserId, "VEHICLE_OFFER_WITHDRAWN", id, "/messages");
+    notificationsService.create(
+      offer.sellerUserId,
+      "VEHICLE_OFFER_WITHDRAWN",
+      id,
+      developmentPublicProfile(offer.sellerUserId)?.role === "dealer"
+        ? "/dealer-account/received-offers"
+        : "/account/received-offers",
+    );
     return updated;
   },
   rejectOffer(actor: CommunicationActor, id: string) {

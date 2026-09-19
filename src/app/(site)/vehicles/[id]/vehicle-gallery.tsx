@@ -46,6 +46,7 @@ export function VehicleGallery({ images, title }: { images: VehicleMedia[]; titl
         src={current.url}
         alt={current.alt || title}
         fill
+        unoptimized={current.url.startsWith("blob:")}
         priority={isPrimary && active === 0}
         fetchPriority={isPrimary && active === 0 ? "high" : "auto"}
         sizes="(min-width: 1280px) 800px, (min-width: 1024px) 65vw, 100vw"
@@ -156,6 +157,7 @@ export function VehicleGallery({ images, title }: { images: VehicleMedia[]; titl
                 src={image.url}
                 alt=""
                 fill
+                unoptimized={image.url.startsWith("blob:")}
                 loading="lazy"
                 sizes="112px"
                 className="object-cover"

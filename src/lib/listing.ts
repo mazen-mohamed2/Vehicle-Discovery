@@ -139,7 +139,9 @@ export function toPublicVehicle(listing: ManagedListing): VehicleListing {
     sellerName: listing.sellerName,
     verified: false,
     featured: false,
-    images: listing.images.map((image) => ({ id: image.id, url: image.url, alt: image.name })),
+    images: [...listing.images]
+      .sort((a, b) => Number(b.isCover) - Number(a.isCover) || a.order - b.order)
+      .map((image) => ({ id: image.id, url: image.url, alt: image.name })),
     createdAt: listing.publishedAt ?? listing.createdAt,
     updatedAt: listing.updatedAt,
   };
@@ -161,4 +163,46 @@ export function listingTitle(listing: ManagedListing) {
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+function normalizeListingImages(images: ListingImage[], coverId?: string): ListingImage[] {
+  const selectedCoverId =
+    (coverId && images.some((image) => image.id === coverId) ? coverId : undefined) ??
+    images.find((image) => image.isCover)?.id ??
+    images[0]?.id;
+  return images.map((image, order) => ({
+    ...image,
+    order,
+    isCover: image.id === selectedCoverId,
+  }));
+}
+
+/** Keeps ordering and the single-cover invariant consistent across the photo editor. */
+export function appendListingImages(
+  current: ListingImage[],
+  incoming: ListingImage[],
+  limit: number,
+): ListingImage[] {
+  return normalizeListingImages(
+    [...current, ...incoming].slice(0, limit),
+    current.find((image) => image.isCover)?.id,
+  );
+}
+
+export function removeListingImage(images: ListingImage[], id: string): ListingImage[] {
+  const currentCoverId = images.find((image) => image.isCover)?.id;
+  return normalizeListingImages(
+    images.filter((image) => image.id !== id),
+    currentCoverId === id ? undefined : currentCoverId,
+  );
+}
+
+export function setListingCover(images: ListingImage[], id: string): ListingImage[] {
+  const selected = images.find((image) => image.id === id);
+  if (!selected) return normalizeListingImages(images);
+  return normalizeListingImages([selected, ...images.filter((image) => image.id !== id)], id);
+}
+
+export function listingCoverImage(listing: Pick<ManagedListing, "images">) {
+  return listing.images.find((image) => image.isCover) ?? listing.images[0];
 }

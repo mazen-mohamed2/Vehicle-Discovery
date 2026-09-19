@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useManagedListings } from "@/hooks/use-managed-listings";
 import { useI18n } from "@/lib/i18n";
 import { validateListing } from "@/lib/listing-validators";
-import { listingTitle, toPublicVehicle } from "@/lib/listing";
+import { listingCoverImage, listingTitle, toPublicVehicle } from "@/lib/listing";
 import { listingCategoryRegistry, listingSummary } from "@/lib/marketplace-listing";
 
 export function ListingPreview({ listingId }: { listingId: string }) {
@@ -41,6 +41,7 @@ export function ListingPreview({ listingId }: { listingId: string }) {
     );
   const errors = validateListing(listing, true);
   const summary = listingSummary(toPublicVehicle(listing), t, locale);
+  const coverImage = listingCoverImage(listing);
   return (
     <AuthBoundary>
       <main className="mx-auto max-w-5xl px-4 py-10">
@@ -50,12 +51,12 @@ export function ListingPreview({ listingId }: { listingId: string }) {
         </div>
         <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
-            {listing.images[0] ? (
+            {coverImage ? (
               <Image
-                src={listing.images[0].url}
-                alt={listing.images[0].name}
+                src={coverImage.url}
+                alt={coverImage.name}
                 fill
-                unoptimized={listing.images[0].temporary}
+                unoptimized={coverImage.temporary}
                 className="object-cover"
               />
             ) : (

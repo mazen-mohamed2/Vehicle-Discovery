@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useManagedListings } from "@/hooks/use-managed-listings";
 import { useI18n } from "@/lib/i18n";
 import type { ListingStatus } from "@/lib/listing";
-import { listingTitle } from "@/lib/listing";
+import { listingCoverImage, listingTitle } from "@/lib/listing";
 import { listingCategoryRegistry } from "@/lib/marketplace-listing";
 
 export function MyListings() {
@@ -108,13 +108,13 @@ export function MyListings() {
                 className="overflow-hidden rounded-2xl surface-card shadow-card"
               >
                 <div className="grid sm:grid-cols-[180px_1fr]">
-                  {listing.images[0] ? (
+                  {listingCoverImage(listing) ? (
                     <div className="relative min-h-40">
                       <Image
-                        src={listing.images[0].url}
-                        alt={listing.images[0].name}
+                        src={listingCoverImage(listing)!.url}
+                        alt={listingCoverImage(listing)!.name}
                         fill
-                        unoptimized={listing.images[0].temporary}
+                        unoptimized={listingCoverImage(listing)!.temporary}
                         className="object-cover"
                       />
                     </div>
