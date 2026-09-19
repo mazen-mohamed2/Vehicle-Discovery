@@ -304,7 +304,9 @@ const categoryListings: MarketplaceListing[] = [
     sellerName: "Mohamed S.",
     verified: false,
     featured: false,
-    images: [],
+    images: [
+      { id: "moto1-image", url: "/assets/motorcycle-1.png", alt: "Yamaha MT-07 motorcycle" },
+    ],
     createdAt: "2026-06-14",
     updatedAt: "2026-06-14",
     specs: {
@@ -331,7 +333,9 @@ const categoryListings: MarketplaceListing[] = [
     sellerName: "Al Fahd Motors",
     verified: false,
     featured: false,
-    images: [],
+    images: [
+      { id: "boat1-image", url: "/assets/boat-1.png", alt: "Bayliner VR5 recreational boat" },
+    ],
     createdAt: "2026-06-15",
     updatedAt: "2026-06-15",
     specs: {
@@ -341,7 +345,10 @@ const categoryListings: MarketplaceListing[] = [
       lengthMeters: 6.23,
       propulsion: "inboard",
       engineCount: 1,
+      enginePowerHp: 250,
       engineHours: 140,
+      fuelType: "gasoline",
+      passengerCapacity: 8,
       hullMaterial: "Fiberglass",
     },
   },

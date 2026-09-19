@@ -248,6 +248,7 @@ function base(owner: ListingOwner, category: ListingCategory = "CAR"): ManagedLi
               boatType: "",
               lengthMeters: undefined,
               propulsion: "",
+              fuelType: "",
               hullMaterial: "",
             },
     make: "",

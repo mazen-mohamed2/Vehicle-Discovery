@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useI18n } from "@/lib/i18n";
 import { formatDate } from "@/lib/locale";
+import { ListingContext } from "@/components/marketplace/ListingContext";
+import { marketplaceCommunicationService } from "@/services/marketplace-communication.service";
 
 export function NotificationCenter() {
   const { t, locale } = useI18n();
@@ -39,30 +41,58 @@ export function NotificationCenter() {
           </section>
         ) : (
           <ol className="mt-6 grid gap-3">
-            {state.notifications.map((notification) => (
-              <li key={notification.id}>
-                <Link
-                  href={notification.href}
-                  onClick={() => void state.markRead(notification.id)}
-                  className="block rounded-2xl surface-card p-5 shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <div className="flex items-start gap-3">
-                    {!notification.readAt && (
-                      <span
-                        className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary"
-                        aria-label={t("notifications.unread")}
-                      />
-                    )}
-                    <div>
-                      <h2 className="font-bold">{t(`notifications.type.${notification.type}`)}</h2>
-                      <time className="mt-1 block text-xs text-muted-foreground">
-                        {formatDate(notification.createdAt, locale)}
-                      </time>
+            {state.notifications.map((notification) => {
+              let listingId: string | undefined;
+              const hasListingContext =
+                notification.type === "NEW_MESSAGE" ||
+                notification.type === "NEW_VEHICLE_OFFER" ||
+                notification.type === "VEHICLE_OFFER_ACCEPTED" ||
+                notification.type === "VEHICLE_OFFER_REJECTED" ||
+                notification.type === "VEHICLE_OFFER_WITHDRAWN";
+              try {
+                listingId = state.actor
+                  ? marketplaceCommunicationService.listingIdForNotification(
+                      state.actor,
+                      notification,
+                    )
+                  : undefined;
+              } catch {
+                listingId = undefined;
+              }
+              return (
+                <li key={notification.id} className="rounded-2xl surface-card p-4 shadow-card">
+                  <Link
+                    href={notification.href}
+                    onClick={() => void state.markRead(notification.id)}
+                    className="block rounded-lg p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <div className="flex items-start gap-3">
+                      {!notification.readAt && (
+                        <span
+                          className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary"
+                          aria-label={t("notifications.unread")}
+                        />
+                      )}
+                      <div>
+                        <h2 className="font-bold">
+                          {t(`notifications.type.${notification.type}`)}
+                        </h2>
+                        <time className="mt-1 block text-xs text-muted-foreground">
+                          {formatDate(notification.createdAt, locale)}
+                        </time>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
+                  </Link>
+                  {hasListingContext && (
+                    <ListingContext
+                      listingId={listingId ?? notification.relatedId}
+                      className="mt-3"
+                      showPrice={false}
+                    />
+                  )}
+                </li>
+              );
+            })}
           </ol>
         )}
       </main>

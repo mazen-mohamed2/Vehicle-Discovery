@@ -5,6 +5,7 @@ import {
   type ConversationRecord,
   type MessageRecord,
   type VehicleOfferRecord,
+  type WebsiteNotificationRecord,
 } from "@/lib/communication";
 import { publicCatalogService } from "@/services/public-catalog.service";
 import { notificationsService } from "@/services/notifications.service";
@@ -112,6 +113,26 @@ const buyerOffersHref = (userId: string) =>
     : "/account/offers";
 
 export const marketplaceCommunicationService = {
+  listingIdForNotification(
+    actor: CommunicationActor,
+    notification: WebsiteNotificationRecord,
+  ): string | undefined {
+    if (notification.recipientUserId !== actor.id) throw new CommunicationError("FORBIDDEN");
+    if (notification.type === "NEW_MESSAGE")
+      return conversationFor(actor, notification.relatedId).listingId;
+    if (
+      notification.type === "NEW_VEHICLE_OFFER" ||
+      notification.type === "VEHICLE_OFFER_ACCEPTED" ||
+      notification.type === "VEHICLE_OFFER_REJECTED" ||
+      notification.type === "VEHICLE_OFFER_WITHDRAWN"
+    ) {
+      const offer = offerFor(notification.relatedId);
+      if (offer.buyerUserId !== actor.id && offer.sellerUserId !== actor.id)
+        throw new CommunicationError("FORBIDDEN");
+      return offer.listingId;
+    }
+    return undefined;
+  },
   startConversation(actor: CommunicationActor, listingId: string) {
     const listing = listingForInteraction(listingId);
     if (listing.sellerUserId === actor.id) throw new CommunicationError("SELF_INTERACTION");

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useManagedListings } from "@/hooks/use-managed-listings";
 import { useI18n } from "@/lib/i18n";
-import { validateListing } from "@/lib/listing-validators";
+import { validateListing, validateListingStep } from "@/lib/listing-validators";
 import type { ListingImage, ListingStep, ManagedListing } from "@/lib/listing";
 import { managedListingsService } from "@/services/managed-listings.service";
 import { categoryFormFields, type CategoryField } from "@/lib/category-form";
@@ -49,6 +49,19 @@ export function ListingWizard({ listingId }: { listingId: string }) {
   }, [data.listing, draft]);
   useEffect(() => {
     if (!draft) return;
+    setErrors((current) => {
+      if (Object.keys(current).length === 0) return current;
+      const currentValidation = validateListing(draft, true);
+      const next = Object.fromEntries(
+        Object.keys(current).flatMap((name) =>
+          currentValidation[name] ? [[name, currentValidation[name]]] : [],
+        ),
+      );
+      return JSON.stringify(next) === JSON.stringify(current) ? current : next;
+    });
+  }, [draft]);
+  useEffect(() => {
+    if (!draft) return;
     const serialized = JSON.stringify(draft);
     if (serialized === lastSaved.current) return;
     const timer = window.setTimeout(() => {
@@ -68,7 +81,6 @@ export function ListingWizard({ listingId }: { listingId: string }) {
   }, [draft?.images]);
   useEffect(() => () => imagesAtUnmount.current.forEach(managedListingsService.revokeImage), []);
   const active = steps[step];
-  const invalid = useMemo(() => (draft ? validateListing(draft, false) : {}), [draft]);
   if (data.isError)
     return (
       <AuthBoundary>
@@ -96,41 +108,49 @@ export function ListingWizard({ listingId }: { listingId: string }) {
         </main>
       </AuthBoundary>
     );
-  const set = <K extends keyof ManagedListing>(key: K, value: ManagedListing[K]) =>
-    setDraft((current) =>
-      current
-        ? {
-            ...current,
-            [key]: value,
-            ...(current.category === "CAR" && key in current.specs
-              ? { specs: { ...current.specs, [key]: value } }
-              : {}),
-          }
-        : current,
-    );
-  const setSpec = (name: string, value: string | number | undefined) =>
+  const set = <K extends keyof ManagedListing>(key: K, value: ManagedListing[K]) => {
+    setDraft((current) => (current ? { ...current, [key]: value } : current));
+  };
+  const setSpec = (name: string, value: string | number | undefined) => {
     setDraft((current) =>
       current
         ? {
             ...current,
             specs: { ...current.specs, [name]: value },
-            ...(name === "make" || name === "model" || name === "mileage" || name === "transmission"
-              ? { [name]: value }
-              : {}),
+            ...(current.category === "CAR" ? { [name]: value } : {}),
           }
         : current,
     );
-  const next = () => {
-    const currentErrors = validateListing(draft, false);
+  };
+  const revealErrors = (currentErrors: Record<string, string>) => {
     setErrors(currentErrors);
-    if (Object.keys(currentErrors).length) {
-      document.getElementById("listing-errors")?.focus();
+    window.requestAnimationFrame(() => {
+      const first = document.querySelector<HTMLElement>('[aria-invalid="true"]');
+      (first ?? document.getElementById("listing-errors"))?.focus();
+      first?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
+  const navigateTo = (target: number) => {
+    if (target <= step) {
+      setErrors({});
+      setStep(target);
+      set("currentStep", steps[target]);
       return;
     }
-    const nextStep = Math.min(steps.length - 1, step + 1);
-    setStep(nextStep);
-    set("currentStep", steps[nextStep]);
+    for (let index = step; index < target; index += 1) {
+      const currentErrors = validateListingStep(draft, steps[index]);
+      if (Object.keys(currentErrors).length) {
+        setStep(index);
+        set("currentStep", steps[index]);
+        revealErrors(currentErrors);
+        return;
+      }
+    }
+    setErrors({});
+    setStep(target);
+    set("currentStep", steps[target]);
   };
+  const next = () => navigateTo(Math.min(steps.length - 1, step + 1));
   const publish = async () => {
     try {
       await data.updateListing({ listingId, patch: draft });
@@ -142,8 +162,11 @@ export function ListingWizard({ listingId }: { listingId: string }) {
         error && typeof error === "object" && "fields" in error
           ? (error.fields as Record<string, string>)
           : validateListing(draft, true);
-      setErrors(fields);
-      document.getElementById("listing-errors")?.focus();
+      const firstStepWithError = steps.findIndex((item) =>
+        Object.keys(validateListingStep(draft, item)).some((name) => fields[name]),
+      );
+      if (firstStepWithError >= 0) setStep(firstStepWithError);
+      revealErrors(fields);
       toast.error(t("listing.error.publish"));
     }
   };
@@ -184,7 +207,7 @@ export function ListingWizard({ listingId }: { listingId: string }) {
             <li key={item}>
               <button
                 type="button"
-                onClick={() => setStep(index)}
+                onClick={() => navigateTo(index)}
                 aria-current={index === step ? "step" : undefined}
                 className={`w-full rounded-lg border p-2 text-xs ${index === step ? "border-primary bg-primary/10" : "border-border"}`}
               >
@@ -214,8 +237,9 @@ export function ListingWizard({ listingId }: { listingId: string }) {
                 setSpec={setSpec}
                 errors={errors}
               />
-              <Field label={t("form.year")} required>
+              <Field label={t("form.year")} htmlFor="listing-year" required>
                 <Input
+                  id="listing-year"
                   type="number"
                   min="1900"
                   value={draft.year ?? ""}
@@ -228,27 +252,30 @@ export function ListingWizard({ listingId }: { listingId: string }) {
           )}
           {active === "basics" && draft.category === "CAR" && (
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label={t("form.make")} required>
+              <Field label={t("form.make")} htmlFor="listing-make" required>
                 <Input
+                  id="listing-make"
                   value={draft.make}
                   onChange={(e) => {
-                    set("make", e.target.value);
-                    set("model", "");
+                    setSpec("make", e.target.value);
+                    setSpec("model", "");
                   }}
                   {...field("make")}
                 />
                 {message("make")}
               </Field>
-              <Field label={t("form.model")} required>
+              <Field label={t("form.model")} htmlFor="listing-model" required>
                 <Input
+                  id="listing-model"
                   value={draft.model}
-                  onChange={(e) => set("model", e.target.value)}
+                  onChange={(e) => setSpec("model", e.target.value)}
                   {...field("model")}
                 />
                 {message("model")}
               </Field>
-              <Field label={t("form.year")}>
+              <Field label={t("form.year")} htmlFor="listing-year" required>
                 <Input
+                  id="listing-year"
                   type="number"
                   min="1900"
                   value={draft.year ?? ""}
@@ -257,11 +284,19 @@ export function ListingWizard({ listingId }: { listingId: string }) {
                 />
                 {message("year")}
               </Field>
-              <Field label={t("listing.field.trim")}>
-                <Input value={draft.trim} onChange={(e) => set("trim", e.target.value)} />
+              <Field label={t("listing.field.trim")} htmlFor="listing-trim">
+                <Input
+                  id="listing-trim"
+                  value={draft.trim}
+                  onChange={(e) => setSpec("trim", e.target.value)}
+                />
               </Field>
-              <Field label={t("vehicle.bodyType")}>
-                <Input value={draft.bodyType} onChange={(e) => set("bodyType", e.target.value)} />
+              <Field label={t("vehicle.bodyType")} htmlFor="listing-bodyType">
+                <Input
+                  id="listing-bodyType"
+                  value={draft.bodyType}
+                  onChange={(e) => setSpec("bodyType", e.target.value)}
+                />
               </Field>
             </div>
           )}
@@ -277,12 +312,13 @@ export function ListingWizard({ listingId }: { listingId: string }) {
           )}
           {active === "specifications" && draft.category === "CAR" && (
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label={t("listing.field.mileage")}>
+              <Field label={t("listing.field.mileage")} htmlFor="listing-mileage" required>
                 <Input
+                  id="listing-mileage"
                   type="number"
                   min="0"
                   value={draft.mileage ?? ""}
-                  onChange={(e) => set("mileage", numeric(e.target.value))}
+                  onChange={(e) => setSpec("mileage", numeric(e.target.value))}
                   {...field("mileage")}
                 />
                 {message("mileage")}
@@ -290,28 +326,36 @@ export function ListingWizard({ listingId }: { listingId: string }) {
               <SelectField
                 label={t("vehicle.transmission")}
                 value={draft.transmission}
-                onChange={(v) => set("transmission", v as ManagedListing["transmission"])}
+                onChange={(v) => setSpec("transmission", v)}
                 options={["automatic", "manual"]}
+                name="transmission"
+                error={errors.transmission}
               />
               <SelectField
                 label={t("vehicle.fuel")}
                 value={draft.fuelType}
-                onChange={(v) => set("fuelType", v as ManagedListing["fuelType"])}
+                onChange={(v) => setSpec("fuelType", v)}
                 options={["gasoline", "diesel", "hybrid", "electric"]}
+                name="fuelType"
+                error={errors.fuelType}
               />
-              <Field label={t("listing.field.color")}>
+              <Field label={t("listing.field.color")} htmlFor="listing-exteriorColor">
                 <Input
+                  id="listing-exteriorColor"
                   value={draft.exteriorColor}
-                  onChange={(e) => set("exteriorColor", e.target.value)}
+                  onChange={(e) => setSpec("exteriorColor", e.target.value)}
                 />
               </Field>
-              <Field label={t("listing.field.horsepower")}>
+              <Field label={t("listing.field.horsepower")} htmlFor="listing-horsepower">
                 <Input
+                  id="listing-horsepower"
                   type="number"
                   min="1"
                   value={draft.horsepower ?? ""}
-                  onChange={(e) => set("horsepower", numeric(e.target.value))}
+                  onChange={(e) => setSpec("horsepower", numeric(e.target.value))}
+                  {...field("horsepower")}
                 />
+                {message("horsepower")}
               </Field>
             </div>
           )}
@@ -328,20 +372,21 @@ export function ListingWizard({ listingId }: { listingId: string }) {
                   <SelectField
                     label={t("listing.field.accident")}
                     value={draft.accidentHistory}
-                    onChange={(v) => set("accidentHistory", v as ManagedListing["accidentHistory"])}
+                    onChange={(v) => setSpec("accidentHistory", v)}
                     options={["none", "declared", "unknown"]}
                   />
                   <SelectField
                     label={t("listing.field.import")}
                     value={draft.importStatus}
-                    onChange={(v) => set("importStatus", v as ManagedListing["importStatus"])}
+                    onChange={(v) => setSpec("importStatus", v)}
                     options={["local", "imported", "unknown"]}
                   />
-                  <Field label={t("vehicle.vin")}>
+                  <Field label={t("vehicle.vin")} htmlFor="listing-vin">
                     <Input
+                      id="listing-vin"
                       value={draft.vin ?? ""}
                       maxLength={17}
-                      onChange={(e) => set("vin", e.target.value || undefined)}
+                      onChange={(e) => setSpec("vin", e.target.value || undefined)}
                       {...field("vin")}
                     />
                     {message("vin")}
@@ -352,8 +397,9 @@ export function ListingWizard({ listingId }: { listingId: string }) {
           )}
           {active === "commercial" && (
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label={t("listing.field.price")} required>
+              <Field label={t("listing.field.price")} htmlFor="listing-price" required>
                 <Input
+                  id="listing-price"
                   type="number"
                   min="1"
                   value={draft.price ?? ""}
@@ -368,8 +414,9 @@ export function ListingWizard({ listingId }: { listingId: string }) {
                 onChange={(v) => set("currency", v as "EGP" | "USD")}
                 options={["EGP", "USD"]}
               />
-              <Field label={t("vehicle.location")} required>
+              <Field label={t("vehicle.location")} htmlFor="listing-location" required>
                 <Input
+                  id="listing-location"
                   value={draft.location}
                   onChange={(e) => set("location", e.target.value)}
                   {...field("location")}
@@ -387,8 +434,9 @@ export function ListingWizard({ listingId }: { listingId: string }) {
           )}
           {active === "declarations" && (
             <div className="space-y-5">
-              <Field label={t("listing.field.description")} required>
+              <Field label={t("listing.field.description")} htmlFor="listing-description" required>
                 <Textarea
+                  id="listing-description"
                   rows={7}
                   value={draft.description}
                   onChange={(e) => set("description", e.target.value)}
@@ -446,7 +494,7 @@ export function ListingWizard({ listingId }: { listingId: string }) {
           <Button
             variant="outline"
             disabled={step === 0}
-            onClick={() => setStep((value) => Math.max(0, value - 1))}
+            onClick={() => navigateTo(Math.max(0, step - 1))}
           >
             {t("pagination.previous")}
           </Button>
@@ -460,15 +508,17 @@ export function ListingWizard({ listingId }: { listingId: string }) {
 function Field({
   label,
   required,
+  htmlFor,
   children,
 }: {
   label: string;
   required?: boolean;
+  htmlFor?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-2">
-      <Label>
+      <Label htmlFor={htmlFor}>
         {label}
         {required && <span aria-hidden="true"> *</span>}
       </Label>
@@ -481,18 +531,28 @@ function SelectField({
   value,
   onChange,
   options,
+  name,
+  error,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: string[];
+  name?: string;
+  error?: string;
 }) {
+  const { t } = useI18n();
+  const id = name ? `listing-${name}` : undefined;
+  const errorId = error && name ? `${name}-error` : undefined;
   return (
-    <Field label={label}>
+    <Field label={label} htmlFor={id}>
       <select
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-10 w-full rounded-md border border-input bg-background px-3"
+        aria-invalid={Boolean(error)}
+        aria-describedby={errorId}
+        className="h-10 w-full rounded-md border border-input bg-background px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <option value="">—</option>
         {options.map((option) => (
@@ -501,6 +561,11 @@ function SelectField({
           </option>
         ))}
       </select>
+      {errorId && (
+        <p id={errorId} className="text-sm text-destructive">
+          {t(`listing.validation.${error}`)}
+        </p>
+      )}
     </Field>
   );
 }
@@ -538,7 +603,7 @@ function CategoryFields({
             <option value="">{t("discovery.all")}</option>
             {field.options?.map((option) => (
               <option key={option} value={option}>
-                {t(`${field.name}.${option}`)}
+                {t(`${field.name === "fuelType" ? "fuel" : field.name}.${option}`)}
               </option>
             ))}
           </select>
@@ -611,21 +676,36 @@ function Photos({
     setImages(next.map((image, order) => ({ ...image, order })));
   };
   return (
-    <div>
-      <Label htmlFor="listing-images">{t("listing.image.select")}</Label>
-      <Input
-        id="listing-images"
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        multiple
-        onChange={(e) => add(e.target.files)}
-      />
-      <p className="mt-2 text-sm text-muted-foreground">{t("listing.image.temporary")}</p>
+    <div className="space-y-4">
+      <div className="rounded-xl border border-dashed border-primary/50 bg-primary/5 p-4 sm:p-5">
+        <Label htmlFor="listing-images" className="font-bold">
+          {t("listing.image.select")}
+        </Label>
+        <p className="mt-1 text-sm text-muted-foreground">{t("listing.image.guidance")}</p>
+        <Input
+          id="listing-images"
+          className="mt-3 min-h-11 cursor-pointer"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          onChange={(e) => add(e.target.files)}
+        />
+        <p className="mt-2 text-sm text-muted-foreground">{t("listing.image.temporary")}</p>
+      </div>
+      <p className="text-sm font-semibold" role="status">
+        {t("listing.image.count").replace("{count}", String(draft.images.length))}
+      </p>
+      {draft.images.length === 0 && (
+        <div className="rounded-xl bg-secondary p-5 text-center text-sm text-muted-foreground">
+          <p className="font-semibold text-foreground">{t("listing.image.emptyTitle")}</p>
+          <p className="mt-1">{t("listing.image.emptyDescription")}</p>
+        </div>
+      )}
       {!draft.images.some((image) => !image.temporary) && (
         <Button
           type="button"
           variant="outline"
-          className="mt-3"
+          className="min-h-11"
           onClick={() =>
             setImages([
               ...draft.images.map((image) => ({ ...image, isCover: false })),
@@ -637,7 +717,7 @@ function Photos({
         </Button>
       )}
       {message}
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {draft.images.map((image, index) => (
           <figure key={image.id} className="rounded-lg border p-3">
             <div className="relative aspect-video overflow-hidden rounded">
@@ -655,8 +735,10 @@ function Photos({
             </figcaption>
             <div className="mt-2 flex flex-wrap gap-1">
               <Button
+                type="button"
                 size="sm"
                 variant="outline"
+                className="min-h-10 flex-1"
                 onClick={() =>
                   setImages(
                     draft.images.map((item) => ({ ...item, isCover: item.id === image.id })),
@@ -666,22 +748,32 @@ function Photos({
                 {t("listing.image.makeCover")}
               </Button>
               <Button
+                type="button"
                 size="sm"
                 variant="outline"
+                className="min-h-10 min-w-10"
                 aria-label={t("listing.image.up")}
                 onClick={() => move(index, -1)}
               >
                 ↑
               </Button>
               <Button
+                type="button"
                 size="sm"
                 variant="outline"
+                className="min-h-10 min-w-10"
                 aria-label={t("listing.image.down")}
                 onClick={() => move(index, 1)}
               >
                 ↓
               </Button>
-              <Button size="sm" variant="destructive" onClick={() => remove(image.id)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                className="min-h-10"
+                onClick={() => remove(image.id)}
+              >
                 {t("listing.delete")}
               </Button>
             </div>

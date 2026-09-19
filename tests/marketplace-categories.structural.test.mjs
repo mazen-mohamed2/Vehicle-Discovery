@@ -59,6 +59,9 @@ test("Arabic and English keys exist for categories and specific facts", async ()
     "category.CAR",
     "category.MOTORCYCLE",
     "category.BOAT",
+    "category.single.CAR",
+    "category.single.MOTORCYCLE",
+    "category.single.BOAT",
     "category.compareSame",
     "category.motorcycleType",
     "category.boatType",
@@ -76,4 +79,58 @@ test("Arabic and English keys exist for categories and specific facts", async ()
     translations,
     /"hero\.title": "Explore cars, motorcycles, and boats with confidence"/,
   );
+});
+
+test("wizard gates every step and exposes accessible inline photo and validation UX", async () => {
+  const [wizard, validators] = await Promise.all([
+    read("src/components/listings/ListingWizard.tsx"),
+    read("src/lib/listing-validators.ts"),
+  ]);
+  assert.match(validators, /export function validateListingStep/);
+  assert.match(validators, /step === "basics"/);
+  assert.match(validators, /step === "specifications"/);
+  assert.match(validators, /step === "declarations"/);
+  assert.match(wizard, /validateListingStep\(draft, steps\[index\]\)/);
+  assert.match(wizard, /navigateTo\(index\)/);
+  assert.match(wizard, /querySelector<HTMLElement>\('\[aria-invalid="true"\]'/);
+  assert.match(wizard, /currentValidation\[name\]/);
+  assert.match(wizard, /listing\.image\.count/);
+  assert.match(wizard, /listing\.image\.emptyDescription/);
+  assert.match(wizard, /accept="image\/jpeg,image\/png,image\/webp"/);
+  assert.match(wizard, /managedListingsService\.revokeImage/);
+});
+
+test("shared listing context is used by chat offers and notifications without record snapshots", async () => {
+  const [context, conversation, offers, notifications, communicationDomain] = await Promise.all([
+    read("src/components/marketplace/ListingContext.tsx"),
+    read("src/components/communication/ConversationDetail.tsx"),
+    read("src/components/communication/VehicleOffers.tsx"),
+    read("src/components/communication/NotificationCenter.tsx"),
+    read("src/lib/communication.ts"),
+  ]);
+  assert.match(context, /listingContextService\.resolve\(listingId\)/);
+  assert.match(context, /listing\.context\.unavailable/);
+  assert.match(context, /href=\{context\.href\}/);
+  assert.match(conversation, /<ListingContext listingId=\{workflow\.conversation\.listingId\}/);
+  assert.match(offers, /<ListingContext listingId=\{offer\.listingId\}/);
+  assert.match(notifications, /listingIdForNotification/);
+  assert.match(notifications, /<ListingContext/);
+  assert.doesNotMatch(communicationDomain, /listingSnapshot|imageBase64|imageBinary/);
+  assert.doesNotMatch(`${context}${conversation}${offers}${notifications}`, /QuickPreview/);
+});
+
+test("recreational boat fields and fixture thumbnails remain within Sprint 11 scope", async () => {
+  const [domain, form, fixtures] = await Promise.all([
+    read("src/lib/marketplace-listing.ts"),
+    read("src/lib/category-form.ts"),
+    read("src/services/mock-data.ts"),
+  ]);
+  for (const field of ["enginePowerHp", "fuelType", "passengerCapacity"])
+    assert.match(domain, new RegExp(field));
+  assert.match(form, /name: "enginePowerHp"/);
+  assert.match(form, /name: "passengerCapacity"/);
+  assert.match(fixtures, /\/assets\/motorcycle-1\.png/);
+  assert.match(fixtures, /\/assets\/boat-1\.png/);
+  for (const prohibited of ["IMO", "cargoCapacity", "commercialTonnage", "classSociety"])
+    assert.doesNotMatch(`${domain}${form}`, new RegExp(prohibited));
 });

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { clearTypeScriptModules, loadTypeScript } from "./ts-module-loader.mjs";
 
 class MemoryStorage {
@@ -511,7 +512,10 @@ test("category summaries expose appropriate facts without cross-category fields"
   assert.equal(motorcycle.length, 3);
   assert.ok(motorcycle[1].includes("category.cc") && motorcycle[2].startsWith("motorcycleType."));
   assert.equal(boat.length, 3);
-  assert.ok(boat[0].includes("category.meters") && boat[2].startsWith("propulsion."));
+  assert.ok(
+    boat[0].includes("category.meters") &&
+      (boat[2].startsWith("propulsion.") || boat[2].includes("category.horsepower")),
+  );
   assert.ok(boat.every((fact) => !fact.includes("card.km")));
 });
 
@@ -593,4 +597,186 @@ test("category listings retain listing verification and report authorization", (
       (error) => error.code === "DUPLICATE_ACTIVE_REPORT",
     );
   }
+});
+
+test("wizard step validation gates CAR fields immediately and accepts corrected canonical values", () => {
+  const { managedListingsService: service } = setup();
+  const { validateListing, validateListingStep } = loadTypeScript("src/lib/listing-validators.ts");
+  const draft = service.createDraft(owner, "CAR");
+  assert.deepEqual(validateListingStep(draft, "basics"), {
+    make: "required",
+    model: "required",
+    year: "required",
+  });
+  const basics = service.updateDraft(owner, draft.id, {
+    year: 2024,
+    specs: { ...draft.specs, make: "Toyota", model: "Corolla" },
+  });
+  assert.deepEqual(validateListingStep(basics, "basics"), {});
+  assert.equal(validateListingStep(basics, "specifications").mileage, "required");
+  const mileage = service.updateDraft(owner, draft.id, {
+    specs: {
+      ...basics.specs,
+      mileage: 12345,
+      transmission: "automatic",
+      fuelType: "gasoline",
+    },
+  });
+  assert.deepEqual(validateListingStep(mileage, "specifications"), {});
+  const badVin = service.updateDraft(owner, draft.id, {
+    specs: { ...mileage.specs, vin: "INVALID" },
+  });
+  assert.equal(validateListingStep(badVin, "history").vin, "invalid");
+  const goodVin = service.updateDraft(owner, draft.id, {
+    specs: { ...badVin.specs, vin: "1HGCM82633A004352" },
+  });
+  assert.deepEqual(validateListingStep(goodVin, "history"), {});
+  assert.equal(validateListingStep(goodVin, "declarations").description, "minimum");
+  assert.equal(validateListing(goodVin, true).description, "minimum");
+  const corrected = service.updateDraft(owner, draft.id, {
+    price: shared.price,
+    location: shared.location,
+    description: shared.description,
+    declarations: shared.declarations,
+  });
+  assert.deepEqual(validateListingStep(corrected, "commercial"), {});
+  assert.deepEqual(validateListingStep(corrected, "declarations"), {});
+  assert.equal(service.publishListing(owner, draft.id).status, "published");
+});
+
+test("wizard step validation is category-specific for motorcycle and recreational boat", () => {
+  const { managedListingsService: service } = setup();
+  const { validateListingStep } = loadTypeScript("src/lib/listing-validators.ts");
+  const motorcycle = service.createDraft(owner, "MOTORCYCLE");
+  const motorcycleBasics = service.updateDraft(owner, motorcycle.id, {
+    year: 2024,
+    specs: {
+      make: "Yamaha",
+      model: "MT-07",
+      motorcycleType: "naked",
+      transmission: "manual",
+    },
+  });
+  assert.deepEqual(validateListingStep(motorcycleBasics, "basics"), {});
+  assert.deepEqual(validateListingStep(motorcycleBasics, "specifications"), {
+    mileage: "required",
+    engineCapacityCc: "required",
+  });
+  const motorcycleValid = service.updateDraft(owner, motorcycle.id, {
+    specs: { ...motorcycleBasics.specs, mileage: 800, engineCapacityCc: 689 },
+  });
+  assert.deepEqual(validateListingStep(motorcycleValid, "specifications"), {});
+
+  const boat = service.createDraft(owner, "BOAT");
+  const boatBasics = service.updateDraft(owner, boat.id, {
+    year: 2023,
+    specs: {
+      make: "Bayliner",
+      model: "VR5",
+      boatType: "motorboat",
+      propulsion: "",
+      fuelType: "gasoline",
+      hullMaterial: "Fiberglass",
+    },
+  });
+  assert.deepEqual(validateListingStep(boatBasics, "basics"), {});
+  assert.deepEqual(validateListingStep(boatBasics, "specifications"), {
+    lengthMeters: "required",
+    propulsion: "required",
+  });
+  const boatValid = service.updateDraft(owner, boat.id, {
+    specs: {
+      ...boatBasics.specs,
+      lengthMeters: 6.23,
+      propulsion: "inboard",
+      enginePowerHp: 250,
+      passengerCapacity: 8,
+    },
+  });
+  assert.deepEqual(validateListingStep(boatValid, "specifications"), {});
+  assert.equal("mileage" in boatValid.specs, false);
+});
+
+test("representative category fixtures and shared listing context resolve usable presentation", async () => {
+  setup();
+  const { mockListings } = loadTypeScript("src/services/mock-data.ts");
+  const { listingContextService } = loadTypeScript("src/services/listing-context.service.ts");
+  for (const id of ["v1", "moto1", "boat1"]) {
+    const fixture = mockListings.find((listing) => listing.id === id);
+    assert.ok(fixture?.images[0]?.url.startsWith("/assets/"));
+    const context = listingContextService.resolve(id);
+    assert.equal(context.available, true);
+    assert.equal(context.category, fixture.category);
+    assert.equal(context.thumbnail, fixture.images[0].url);
+    assert.equal(context.href, `/vehicles/${id}`);
+    assert.equal(context.price, fixture.price);
+  }
+  assert.deepEqual(listingContextService.resolve("removed-listing"), {
+    listingId: "removed-listing",
+    available: false,
+  });
+  for (const file of ["motorcycle-1.png", "boat-1.png"]) {
+    const bytes = await readFile(new URL(`../public/assets/${file}`, import.meta.url));
+    assert.ok(bytes.length > 1000, file);
+  }
+});
+
+test("notifications resolve listing context through conversation and offer IDs without snapshots", () => {
+  setup();
+  const fixtures = loadTypeScript("src/services/auth.service.ts").developmentAuthFixtures;
+  const actor = (email) => {
+    const user = fixtures.find((item) => item.user.email === email).user;
+    return {
+      id: user.id,
+      role: user.role,
+      scope: `${user.role}:${user.id}`,
+      dealerId: user.dealerId,
+    };
+  };
+  const buyer = actor("customer@sahladaraj.dev");
+  const seller = actor("customer2@sahladaraj.dev");
+  const dealer = actor("dealer@sahladaraj.dev");
+  const communication = loadTypeScript(
+    "src/services/marketplace-communication.service.ts",
+  ).marketplaceCommunicationService;
+  const notifications = loadTypeScript(
+    "src/services/notifications.service.ts",
+  ).notificationsService;
+  const conversation = communication.startConversation(buyer, "moto1");
+  communication.sendMessage(buyer, conversation.id, "Is it available?");
+  const messageNotification = notifications.list(seller)[0];
+  assert.equal(communication.listingIdForNotification(seller, messageNotification), "moto1");
+  const offer = communication.createOffer(buyer, "moto1", { amount: 400000, currency: "EGP" });
+  const offerNotification = notifications.list(seller).find((item) => item.relatedId === offer.id);
+  assert.ok(offerNotification);
+  assert.equal(communication.listingIdForNotification(seller, offerNotification), "moto1");
+  assert.equal("listing" in offerNotification, false);
+  assert.equal("image" in offerNotification, false);
+
+  communication.acceptOffer(seller, offer.id);
+  const accepted = notifications.list(buyer).find((item) => item.relatedId === offer.id);
+  assert.ok(accepted);
+  assert.equal(communication.listingIdForNotification(buyer, accepted), "moto1");
+
+  const rejectedOffer = communication.createOffer(buyer, "boat1", {
+    amount: 1700000,
+    currency: "EGP",
+  });
+  communication.rejectOffer(dealer, rejectedOffer.id);
+  const rejected = notifications.list(buyer).find((item) => item.relatedId === rejectedOffer.id);
+  assert.ok(rejected);
+  assert.equal(communication.listingIdForNotification(buyer, rejected), "boat1");
+
+  const withdrawnOffer = communication.createOffer(buyer, "v1", {
+    amount: 2000000,
+    currency: "EGP",
+  });
+  communication.withdrawOffer(buyer, withdrawnOffer.id);
+  const withdrawn = notifications
+    .list(dealer)
+    .find(
+      (item) => item.relatedId === withdrawnOffer.id && item.type === "VEHICLE_OFFER_WITHDRAWN",
+    );
+  assert.ok(withdrawn);
+  assert.equal(communication.listingIdForNotification(dealer, withdrawn), "v1");
 });

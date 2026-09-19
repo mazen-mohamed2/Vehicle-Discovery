@@ -22,9 +22,9 @@ import { useMarketplaceCommunication } from "@/hooks/use-marketplace-communicati
 import { communicationDetailState, CommunicationError } from "@/lib/communication";
 import { useI18n } from "@/lib/i18n";
 import { formatDate } from "@/lib/locale";
-import { publicCatalogService } from "@/services/public-catalog.service";
 import { developmentPublicProfile } from "@/services/auth.service";
 import { ReportDialog } from "@/components/trust-safety/ReportDialog";
+import { ListingContext } from "@/components/marketplace/ListingContext";
 
 export function ConversationDetail({ id }: { id: string }) {
   const { t, locale } = useI18n();
@@ -93,14 +93,16 @@ export function ConversationDetail({ id }: { id: string }) {
               <div className="min-w-0">
                 <p className="text-sm text-primary">{t("messages.vehicleContext")}</p>
                 <h1 className="line-clamp-2 break-words text-2xl font-black leading-tight sm:text-3xl">
-                  {publicCatalogService.byId(workflow.conversation.listingId)?.title ??
-                    workflow.conversation.listingId}
+                  {t("messages.conversation")}
                 </h1>
               </div>
               <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
                 <Link href="/messages">{t("messages.back")}</Link>
               </Button>
             </header>
+            <section className="mt-5" aria-label={t("listing.context.label")}>
+              <ListingContext listingId={workflow.conversation.listingId} />
+            </section>
             <section
               className="mt-5 rounded-2xl surface-card p-4"
               aria-label={t("messages.counterpart")}

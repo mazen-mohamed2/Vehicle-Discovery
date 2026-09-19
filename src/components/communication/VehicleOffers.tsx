@@ -7,8 +7,8 @@ import { useMarketplaceCommunication } from "@/hooks/use-marketplace-communicati
 import { useI18n } from "@/lib/i18n";
 import { formatCurrency, formatDate } from "@/lib/locale";
 import { developmentPublicProfile } from "@/services/auth.service";
-import { publicCatalogService } from "@/services/public-catalog.service";
 import type { VehicleOfferRecord } from "@/lib/communication";
+import { ListingContext } from "@/components/marketplace/ListingContext";
 
 export function VehicleOffers({
   received = false,
@@ -73,13 +73,15 @@ function OfferCard({
   onAction: (action: "accept" | "reject" | "withdraw", id: string) => Promise<void>;
 }) {
   const { t, locale } = useI18n();
-  const listing = publicCatalogService.byId(offer.listingId);
   const counterpart = developmentPublicProfile(received ? offer.buyerUserId : offer.sellerUserId);
   return (
     <article className="rounded-2xl surface-card p-5 shadow-card">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <ListingContext listingId={offer.listingId} />
+      <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-black">{listing?.title ?? t("vehicleOffers.unavailableVehicle")}</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground">
+            {t(received ? "vehicleOffers.buyer" : "vehicleOffers.seller")}
+          </h2>
           {counterpart ? (
             <Link
               className="text-sm text-muted-foreground hover:text-primary hover:underline"

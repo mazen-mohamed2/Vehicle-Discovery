@@ -108,8 +108,16 @@ export function VehicleDetailClient({
     mechanical.push([t("category.propulsion"), t(`propulsion.${v.specs.propulsion}`)]);
     if (v.specs.engineCount)
       mechanical.push([t("category.engineCount"), String(v.specs.engineCount)]);
+    if (v.specs.enginePowerHp)
+      mechanical.push([
+        t("category.enginePower"),
+        `${formatNumber(v.specs.enginePowerHp, locale)} ${t("category.horsepower")}`,
+      ]);
     if (v.specs.engineHours !== undefined)
       mechanical.push([t("category.engineHours"), String(v.specs.engineHours)]);
+    if (v.specs.fuelType) mechanical.push([t("vehicle.fuel"), t(`fuel.${v.specs.fuelType}`)]);
+    if (v.specs.passengerCapacity)
+      overview.push([t("category.passengerCapacity"), String(v.specs.passengerCapacity)]);
     if (v.specs.hullMaterial) mechanical.push([t("category.hullMaterial"), v.specs.hullMaterial]);
   }
   const listing = [

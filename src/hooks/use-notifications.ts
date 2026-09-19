@@ -37,6 +37,7 @@ export function useNotifications() {
     onSuccess: invalidate,
   });
   return {
+    actor,
     notifications: list.data ?? [],
     unreadCount: unread.data ?? 0,
     isHydrating: auth.isHydrating || list.isPending || unread.isPending,

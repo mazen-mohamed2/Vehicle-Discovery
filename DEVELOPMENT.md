@@ -377,3 +377,27 @@ facts without implying boat mileage or car fuel/transmission for motorcycles and
 detail/edit/preview pages show terminal load/not-found errors rather than indefinite loading if
 stored listing data is invalid or inaccessible. Browser-rendered data and SSR metadata for newly
 created LocalStorage-only listings cannot be fully consistent until a backend owns public records.
+
+## Sprint 11 QA remediation
+
+The stable CAR validation baseline remains authoritative inside the multi-category wizard. CAR
+make/model/year, mileage, transmission/fuel, VIN, price/location, and description/declarations are
+validated at the step that owns them. The wizard prevents forward navigation—including direct step
+selection—until the current and intervening steps pass. MOTORCYCLE and BOAT use the same gating
+mechanism with their own descriptors, so category-irrelevant fields never block progression. Final
+publish still runs the complete defensive validator. Correcting a field clears its inline error and
+the first invalid accessible control receives focus after an attempted advance.
+
+Recreational `BoatSpecs` additionally support optional engine power, fuel type, and passenger
+capacity alongside length, hull, propulsion, engine count, and engine hours. These are practical
+buyer-facing details only; commercial-vessel identifiers, tonnage, certification, and operations
+remain outside the domain.
+
+Chat, marketplace offers, and listing-related notifications retain only canonical `listingId`
+references. Their shared Listing Context presentation resolves the current title, localized
+category, thumbnail, price, details URL, and truthful unavailable fallback from the public catalog.
+No listing snapshot, image binary, or base64 media is duplicated into those records. Current fixture
+thumbnails are local static assets. Future backend media may use authorized asset references backed
+by an object store/CDN, but no provider has been selected and no upload API, object-storage
+integration, or Socket.IO transport is implemented here. Quick Preview is intentionally deferred;
+context is visible immediately and full details remain one accessible link away.

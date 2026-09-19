@@ -396,6 +396,20 @@ function comparisonRows(
                   ? String(v.specs.engineHours ?? "—")
                   : t("vehicle.notAvailable"),
             },
+            {
+              label: t("category.enginePower"),
+              value: (v: VehicleListing) =>
+                v.category === "BOAT" && v.specs.enginePowerHp
+                  ? `${v.specs.enginePowerHp} ${t("category.horsepower")}`
+                  : t("vehicle.notAvailable"),
+            },
+            {
+              label: t("category.passengerCapacity"),
+              value: (v: VehicleListing) =>
+                v.category === "BOAT"
+                  ? String(v.specs.passengerCapacity ?? "—")
+                  : t("vehicle.notAvailable"),
+            },
           ];
   return [
     ...common,

@@ -68,7 +68,10 @@ export interface BoatSpecs {
   lengthMeters?: number;
   propulsion: PropulsionType | "";
   engineCount?: number;
+  enginePowerHp?: number;
   engineHours?: number;
+  fuelType?: "gasoline" | "diesel" | "electric" | "";
+  passengerCapacity?: number;
   hullMaterial: string;
 }
 
@@ -143,7 +146,7 @@ export const listingCategoryRegistry = {
       customImport: false,
     },
     searchFields: ["make", "model", "boatType"],
-    summaryFields: ["lengthMeters", "boatType", "propulsion"],
+    summaryFields: ["lengthMeters", "boatType", "enginePowerHp"],
     filterFields: [
       "make",
       "model",
@@ -243,7 +246,9 @@ export function isMarketplaceListing(value: unknown): value is MarketplaceListin
         "lengthMeters",
         "propulsion",
         "engineCount",
+        "enginePowerHp",
         "engineHours",
+        "passengerCapacity",
         "hullMaterial",
         "motorcycleType",
         "engineCapacityCc",
@@ -260,7 +265,9 @@ export function isMarketplaceListing(value: unknown): value is MarketplaceListin
         "lengthMeters",
         "propulsion",
         "engineCount",
+        "enginePowerHp",
         "engineHours",
+        "passengerCapacity",
         "hullMaterial",
         "fuelType",
         "bodyType",
@@ -276,9 +283,12 @@ export function isMarketplaceListing(value: unknown): value is MarketplaceListin
     text(specs.hullMaterial) &&
     optionalNumber(specs.lengthMeters) &&
     optionalNumber(specs.engineCount) &&
+    optionalNumber(specs.enginePowerHp) &&
     optionalNumber(specs.engineHours) &&
+    (specs.fuelType === undefined ||
+      oneOf(specs.fuelType, ["", "gasoline", "diesel", "electric"])) &&
+    optionalNumber(specs.passengerCapacity) &&
     !hasAny(specs, [
-      "fuelType",
       "bodyType",
       "drivetrain",
       "trim",
@@ -340,6 +350,10 @@ export function listingSummary(
   return [
     specs.lengthMeters ? `${formatNumber(specs.lengthMeters, locale)} ${t("category.meters")}` : "",
     specs.boatType ? t(`boatType.${specs.boatType}`) : "",
-    specs.propulsion ? t(`propulsion.${specs.propulsion}`) : "",
+    specs.enginePowerHp
+      ? `${formatNumber(specs.enginePowerHp, locale)} ${t("category.horsepower")}`
+      : specs.propulsion
+        ? t(`propulsion.${specs.propulsion}`)
+        : "",
   ].filter(Boolean);
 }
