@@ -89,6 +89,14 @@ export function AuthNavigation({
           {t(auth.role === "dealer" ? "auth.dealerAccount" : "auth.account")}
         </Link>
         <Link
+          href={`${accountHref}/transactions`}
+          onClick={onNavigate}
+          aria-current={pathname.startsWith(`${accountHref}/transactions`) ? "page" : undefined}
+          className="rounded-lg px-3 py-2 text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {t("transactions.mine")}
+        </Link>
+        <Link
           href="/messages"
           onClick={onNavigate}
           className="rounded-lg px-3 py-2 text-sm hover:bg-secondary"
@@ -208,6 +216,14 @@ export function AuthNavigation({
         <DropdownMenuItem asChild>
           <Link href={accountHref}>
             {t(auth.role === "dealer" ? "auth.dealerAccount" : "auth.account")}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link
+            href={`${accountHref}/transactions`}
+            aria-current={pathname.startsWith(`${accountHref}/transactions`) ? "page" : undefined}
+          >
+            {t("transactions.mine")}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

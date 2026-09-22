@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { TransactionEntry } from "@/components/transactions/TransactionEntry";
 import { AuthBoundary } from "@/components/auth/AuthBoundary";
 import { Button } from "@/components/ui/button";
 import { useMarketplaceCommunication } from "@/hooks/use-marketplace-communication";
@@ -120,6 +121,12 @@ function OfferCard({
           <dd>{formatDate(offer.updatedAt, locale)}</dd>
         </div>
       </dl>
+      {offer.status === "ACCEPTED" && (
+        <TransactionEntry
+          source={{ type: "LISTING_OFFER", offerId: offer.id, listingId: offer.listingId }}
+          canStart={!received}
+        />
+      )}
       {offer.status === "PENDING" && (
         <div className="mt-5 flex flex-wrap gap-2">
           {received ? (

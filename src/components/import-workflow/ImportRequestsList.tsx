@@ -1,4 +1,5 @@
 "use client";
+import { TransactionEntry } from "@/components/transactions/TransactionEntry";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -188,6 +189,12 @@ function DealerOfferHistory({
                   <dd>{t(`import.status.${request.status}`)}</dd>
                 </div>
               </dl>
+              {offer.status === "ACCEPTED" && (
+                <TransactionEntry
+                  source={{ type: "IMPORT_OFFER", offerId: offer.id, importRequestId: request.id }}
+                  canStart={false}
+                />
+              )}
               {request.status === "OPEN" && (
                 <Button asChild size="sm" className="mt-5">
                   <Link href={`/dealer-account/import-requests/${request.id}`}>

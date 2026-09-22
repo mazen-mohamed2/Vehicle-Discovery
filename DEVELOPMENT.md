@@ -413,3 +413,75 @@ events resolve to the existing received/my-offers destination, and Listing Detai
 secondary action supplied by the shared Listing Context. Conversation and Offer records continue to
 resolve that context from the canonical public catalog and remain visible with an unavailable fallback
 when the listing cannot be resolved.
+
+## Sprint 12: marketplace transactions (frontend foundation only)
+
+Sprint 11 remains the baseline: canonical `MarketplaceListing` IDs and immutable CAR,
+MOTORCYCLE, and BOAT categories; category-agnostic Favorites; same-category Compare with
+the existing four-item limit; unresolved catalog/media presentation never removes membership.
+Offers/conversations retain listing IDs, notifications remain event-oriented, verification
+does not gate publishing, participant blocking stays identity-based, and Custom Import is
+still CAR-only. No listing validation, media lifetime, Compare, or trust lifecycle changes
+are part of this financial foundation.
+
+`MarketplaceTransaction` is a separate commercial agreement, not an alias for a listing,
+offer, payment, escrow, or review. Its immutable source is either `LISTING_OFFER` with
+`offerId`/`listingId`, or `IMPORT_OFFER` with `offerId`/`importRequestId`. Only the buyer of
+an accepted listing offer, or the owner of an accepted import request, may explicitly start
+one. Listing participants derive from offer buyer and matching canonical listing owner
+(`sellerUserId`, never dealer-profile `sellerId`). Import participants derive from request
+owner and accepted offer `dealerUserId`. Distinct participants, source relationships,
+accepted states, finite positive amounts and supported EGP/USD currencies are validated.
+
+Acceptance does not auto-create a transaction. One transaction is allowed per source offer;
+repeat starts return the same record, including after the source is unavailable. Seller/dealer
+cannot start a second one. Agreed amount/currency come from the accepted offer, never asking
+price or import budget. The record snapshots only title/category for readability, not listing
+properties or media. Source, parties and financial terms have no update API. Listings and
+offers are not mutated: accepted remains accepted, and creation/viewing never marks SOLD.
+
+New records are always `AWAITING_PAYMENT`, with payment `NOT_STARTED` and escrow `NOT_STARTED`.
+Future transaction statuses are PAYMENT_PROCESSING, IN_ESCROW, COMPLETED, CANCELLED, FAILED;
+future payment statuses are PENDING, PROCESSING, SUCCEEDED, FAILED, REFUNDED, CANCELLED;
+future escrow statuses are HELD, RELEASED, REFUNDED, DISPUTED. These are contracts, not frontend
+actions. The current local schema deliberately rejects non-initial financial states and
+provider references. A backend adapter/schema migration must introduce authoritative state.
+No Pay, Complete, Hold, Release, Refund, fake receipts or successful financial fixtures exist.
+Payment success does not imply escrow release, and escrow release does not create a review.
+
+Persistence: one shared `sd-marketplace-transactions` envelope (`schemaVersion: 1`, `records`),
+validated on read and write, including unique transaction IDs and unique source offers.
+There is no prior transaction schema to migrate; unknown versions/corrupt data raise typed
+errors and are preserved, never cleared. Both participants read the same canonical record;
+account views/queries filter by canonical ID and query keys include auth scope. Logout removes
+transaction queries without deleting history. Local/storage events refresh shared views.
+All creation checks and the single write execute synchronously; Web Locks serialize cooperating
+tabs where supported. The synchronous fallback protects same-tab duplicates only: localStorage
+is not a cross-device database and cannot guarantee cross-tab atomicity without Web Locks.
+Private routes are noindex, with generic metadata and no per-user SEO data. Source context loads
+separately and never determines whether a persisted transaction exists.
+
+This is NOT production-secure financial persistence or authentication. Local data and mock
+identities remain user-editable. Backend handoff requires:
+
+- One shared website/dashboard domain, not per-participant transaction copies or dashboard-only
+  financial states. Database transaction, unique `(sourceType, offerId)` constraint, and
+  idempotency keys must make creation atomic across all clients. Revalidate accepted source,
+  session/participant authorization and immutable agreement server-side.
+- Exact decimal/minor-unit money persistence and arithmetic (not authoritative floating-point
+  calculations). Frontend currently preserves existing number + currency contracts; transaction
+  presentation retains fractional amounts instead of the marketplace's whole-unit formatting.
+- Provider-agnostic payment service, verified callbacks/webhooks, server-authorized transitions,
+  immutable payment-attempt/audit records and participant access controls. Never trust a client
+  success flag. Sensitive card collection belongs to the future provider; never store card
+  numbers, CVV, expiry or banking/payment credentials here.
+- Backend-controlled escrow hold/release/refund/dispute operations, provider references,
+  authorization, audit trails and idempotency. Payment and escrow providers are NOT selected.
+- Future realtime transport may communicate only persisted, authorized backend state; a socket
+  message is not proof of payment. No realtime or backend APIs are added in this sprint.
+- Sprint 13 reviews must depend on a genuine qualifying COMPLETED transaction, with no self-review
+  or duplicate review. No review or SOLD transition is implemented here.
+
+Wallet, tokens, balances, deposits, withdrawals, checkout, providers, and the separate dashboard
+are untouched. Browser Manual QA and the user's later production build remain required before
+Sprint 12 closure.

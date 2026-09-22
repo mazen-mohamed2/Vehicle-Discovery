@@ -45,6 +45,7 @@ export function useAuth() {
             "favorites",
             "compare",
             "trust-safety",
+            "transactions",
           ].includes(String(item.queryKey[0])),
       });
       client.setQueryData(queryKeys.auth.session, null);

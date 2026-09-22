@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { applyRootDocumentAttributes, rootDocumentAttributes } from "@/lib/root-document";
+import { transactionsAr, transactionsEn } from "@/lib/transaction-copy";
 
 export type Locale = "ar" | "en";
 export type Theme = "light" | "dark";
@@ -261,7 +262,7 @@ const importFlowAr = {
   "import.offers.title": "عروض الوكلاء",
   "import.empty.offers": "لم تصل عروض بعد.",
   "import.accepted.backendBoundary":
-    "تم قبول العرض. ستستمر المعاملة عند توفر خدمات الدفع والخادم الآمنة؛ لم تتم أي عملية دفع الآن.",
+    "تم قبول العرض. يمكن لصاحب الطلب بدء سجل معاملة. الدفع والضمان المالي يتطلبان خدمات خادم مستقبلية؛ لم تتم أي عملية دفع.",
   "import.offer.status": "حالة عرضك",
   "import.offer.none": "لم تقدم عرضاً",
   "import.offer.PENDING": "قيد الانتظار",
@@ -335,7 +336,7 @@ const importFlowEn: Record<keyof typeof importFlowAr, string> = {
   "import.offers.title": "Dealer offers",
   "import.empty.offers": "No offers have arrived yet.",
   "import.accepted.backendBoundary":
-    "The offer is accepted. The transaction will continue when secure backend and payment services are available; no payment has occurred.",
+    "The offer is accepted. The request owner can start an agreement record. Payment and escrow require future backend services; no payment has occurred.",
   "import.offer.status": "Your offer status",
   "import.offer.none": "No offer submitted",
   "import.offer.PENDING": "Pending",
@@ -750,6 +751,7 @@ const marketplaceEn: Record<keyof typeof marketplaceAr, string> = {
 
 const ar = {
   ...marketplaceAr,
+  ...transactionsAr,
   ...listingAr,
   ...importFlowAr,
   ...communicationAr,
@@ -1151,6 +1153,7 @@ const ar = {
 
 const en: Record<keyof typeof ar, string> = {
   ...marketplaceEn,
+  ...transactionsEn,
   ...listingEn,
   ...importFlowEn,
   ...communicationEn,

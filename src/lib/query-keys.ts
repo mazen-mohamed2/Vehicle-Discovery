@@ -1,4 +1,11 @@
 export const queryKeys = {
+  transactions: {
+    all: ["transactions"] as const,
+    list: (scope: import("@/lib/storage-scope").StorageScope) =>
+      ["transactions", scope, "list"] as const,
+    detail: (scope: import("@/lib/storage-scope").StorageScope, id: string) =>
+      ["transactions", scope, "detail", id] as const,
+  },
   listings: {
     all: ["listings", "all"] as const,
     detail: (id: string) => ["listings", "detail", id] as const,

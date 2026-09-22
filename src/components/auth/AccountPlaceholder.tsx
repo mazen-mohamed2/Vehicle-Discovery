@@ -1,4 +1,6 @@
 "use client";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { AuthBoundary } from "@/components/auth/AuthBoundary";
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n";
@@ -32,6 +34,11 @@ export function AccountPlaceholder({
               <dd className="font-bold">{auth.user?.email}</dd>
             </div>
           </dl>
+          <Button asChild variant="outline" className="mt-6">
+            <Link href={`${auth.role === "dealer" ? "/dealer-account" : "/account"}/transactions`}>
+              {t("transactions.mine")}
+            </Link>
+          </Button>
           <p className="mt-8 rounded-lg bg-secondary p-4 text-sm text-muted-foreground">
             {t("auth.account.future")}
           </p>

@@ -1,4 +1,5 @@
 "use client";
+import { TransactionEntry } from "@/components/transactions/TransactionEntry";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -253,6 +254,12 @@ function OwnerOffer({
         {t("import.offer.delivery")}: {offer.estimatedDelivery}
       </p>
       {offer.notes && <p className="mt-2 text-sm text-muted-foreground">{offer.notes}</p>}
+      {offer.status === "ACCEPTED" && (
+        <TransactionEntry
+          source={{ type: "IMPORT_OFFER", offerId: offer.id, importRequestId: offer.requestId }}
+          canStart
+        />
+      )}
       {canAct && offer.status === "PENDING" && (
         <div className="mt-4 flex gap-2">
           <Confirm
