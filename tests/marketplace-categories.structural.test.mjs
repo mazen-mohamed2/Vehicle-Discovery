@@ -45,7 +45,8 @@ test("cards, details, compare, and preview use canonical category facts", async 
   assert.match(card, /summary\.map\(\(fact, index\)/);
   assert.match(detail, /v\.category === "MOTORCYCLE"/);
   assert.match(detail, /category\.boatType/);
-  assert.match(compare, /sameCategoryCompareIds\(parseCompareUrlIds/);
+  assert.match(compare, /reconcileCompareIds\(parseCompareUrlIds/);
+  assert.match(compare, /listingsQuery\.isFetching[\s\S]*!listingsQuery\.data/);
   assert.match(compare, /comparisonRows\(t, locale, vehicles\[0\]\.category\)/);
   assert.match(preview, /listingSummary\(toPublicVehicle\(listing\), t, locale\)/);
   assert.match(preview, /if \(isError\)/);
@@ -73,7 +74,7 @@ test("Arabic and English keys exist for categories and specific facts", async ()
   assert.match(translations, /\.\.\.marketplaceAr/);
   assert.match(translations, /\.\.\.marketplaceEn/);
   assert.match(translations, /"listing\.wizard\.title": "أضف إعلانك"/);
-  assert.match(translations, /"compare\.title": "مقارنة المعروضات"/);
+  assert.match(translations, /"compare\.title": "مقارنة الإعلانات"/);
   assert.match(translations, /"vehicleOffers\.mine": "العروض التي قدمتها"/);
   assert.match(
     translations,

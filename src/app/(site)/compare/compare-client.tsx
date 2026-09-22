@@ -12,7 +12,7 @@ import { useI18n } from "@/lib/i18n";
 import { listingsService } from "@/services/listings.service";
 import { queryKeys } from "@/lib/query-keys";
 import { createCompareQuery, parseCompareUrlIds } from "@/lib/compare-url";
-import { sameCategoryCompareIds } from "@/services/compare.service";
+import { reconcileCompareIds } from "@/services/compare.service";
 import { formatCurrency, formatMileage, formatYear } from "@/lib/locale";
 import type { VehicleListing } from "@/lib/types";
 import { carEngineDisplay, listingCategoryRegistry } from "@/lib/marketplace-listing";
@@ -68,26 +68,30 @@ export function CompareClient() {
   );
 
   useEffect(() => {
-    if (isHydrating || listingsQuery.isLoading) return;
+    if (isHydrating || listingsQuery.isLoading || listingsQuery.isFetching || !listingsQuery.data)
+      return;
     const raw = searchParams.get("vehicles");
     if (pendingUrlValue.current !== undefined) {
       if (raw === pendingUrlValue.current) pendingUrlValue.current = undefined;
       else return;
     }
     if (raw !== null && raw !== lastUrlValue.current) {
-      const valid = sameCategoryCompareIds(parseCompareUrlIds(raw, validIds));
+      const valid = reconcileCompareIds(parseCompareUrlIds(raw, validIds), all);
       lastUrlValue.current = valid.join(",");
       if (valid.join(",") !== comparedIds.join(",")) replaceCompare(valid);
       if (raw !== valid.join(",")) updateUrl(valid);
     } else if (raw === null && comparedIds.length > 0) {
-      const validPersisted = comparedIds.filter((id) => validIds.has(id));
+      const validPersisted = reconcileCompareIds(comparedIds, all);
       if (validPersisted.join(",") !== comparedIds.join(",")) replaceCompare(validPersisted);
       updateUrl(validPersisted);
     }
   }, [
     comparedIds,
     isHydrating,
+    listingsQuery.data,
+    listingsQuery.isFetching,
     listingsQuery.isLoading,
+    all,
     replaceCompare,
     searchParams,
     updateUrl,
@@ -95,7 +99,7 @@ export function CompareClient() {
   ]);
 
   const setComparison = (ids: string[]) => {
-    const valid = sameCategoryCompareIds(ids);
+    const valid = reconcileCompareIds(ids, all);
     replaceCompare(valid);
     updateUrl(valid);
   };
@@ -178,24 +182,15 @@ export function CompareClient() {
                     {t("compare.attribute")}
                   </th>
                   {vehicles.map((vehicle) => (
-                    <th scope="col" key={vehicle.id} className="min-w-56 border-s p-4 align-top">
-                      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted">
-                        {vehicle.images[0] ? (
-                          <Image
-                            src={vehicle.images[0].url}
-                            alt={vehicle.images[0].alt}
-                            fill
-                            unoptimized={vehicle.images[0].url.startsWith("blob:")}
-                            sizes="224px"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <ImageOff className="absolute inset-0 m-auto h-10 w-10 text-muted-foreground" />
-                        )}
-                      </div>
+                    <th
+                      scope="col"
+                      key={vehicle.id}
+                      className="w-56 min-w-56 border-s p-4 align-top"
+                    >
+                      <CompareMedia vehicle={vehicle} />
                       <Link
                         href={`/vehicles/${vehicle.id}`}
-                        className="mt-3 block font-bold hover:text-primary"
+                        className="mt-3 line-clamp-2 min-h-10 break-words font-bold hover:text-primary"
                       >
                         {vehicle.title}
                       </Link>
@@ -203,7 +198,7 @@ export function CompareClient() {
                         type="button"
                         onClick={() => remove(vehicle.id)}
                         aria-label={t("compare.remove")}
-                        className="mt-2 inline-flex items-center gap-1 text-xs text-destructive"
+                        className="mt-2 inline-flex items-center gap-1 rounded-sm text-xs text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <X className="h-3 w-3" />
                         {t("compare.removeShort")}
@@ -255,20 +250,7 @@ export function CompareClient() {
         className="mt-8 mx-auto max-w-md rounded-2xl surface-card p-5 shadow-card"
         aria-labelledby="one-vehicle-title"
       >
-        <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted">
-          {vehicle.images[0] ? (
-            <Image
-              src={vehicle.images[0].url}
-              alt={vehicle.images[0].alt}
-              fill
-              unoptimized={vehicle.images[0].url.startsWith("blob:")}
-              sizes="448px"
-              className="object-cover"
-            />
-          ) : (
-            <ImageOff className="absolute inset-0 m-auto h-10 w-10 text-muted-foreground" />
-          )}
-        </div>
+        <CompareMedia vehicle={vehicle} />
         <h2 id="one-vehicle-title" className="mt-4 text-lg font-bold">
           <Link href={`/vehicles/${vehicle.id}`} className="hover:text-primary">
             {vehicle.title}
@@ -288,6 +270,36 @@ export function CompareClient() {
       </section>
     );
   }
+}
+
+const compareMediaFrameClass =
+  "relative mx-auto h-36 w-48 overflow-hidden rounded-xl border border-border/60 bg-muted";
+
+function CompareMedia({ vehicle }: { vehicle: VehicleListing }) {
+  const { t } = useI18n();
+  const image = vehicle.images[0];
+  return (
+    <div className={compareMediaFrameClass}>
+      {image ? (
+        <Image
+          src={image.url}
+          alt={image.alt}
+          fill
+          unoptimized={image.url.startsWith("blob:")}
+          sizes="192px"
+          className="object-contain p-2"
+        />
+      ) : (
+        <div
+          className="absolute inset-2 grid place-items-center text-muted-foreground"
+          role="img"
+          aria-label={t("vehicle.gallery.noImages")}
+        >
+          <ImageOff className="h-10 w-10" aria-hidden="true" />
+        </div>
+      )}
+    </div>
+  );
 }
 
 function comparisonRows(

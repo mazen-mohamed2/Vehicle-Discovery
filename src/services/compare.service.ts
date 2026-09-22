@@ -1,6 +1,7 @@
 import { scopedStorageKey, type StorageScope } from "@/lib/storage-scope";
 import { AuthServiceError } from "@/lib/auth";
 import { publicCatalogService } from "@/services/public-catalog.service";
+import type { VehicleListing } from "@/lib/types";
 
 export const MAX_COMPARE_VEHICLES = 4;
 const legacyKey = "sd-compare";
@@ -13,12 +14,20 @@ export function normalizeCompareIds(value: unknown): string[] {
   ].slice(0, MAX_COMPARE_VEHICLES);
 }
 export function sameCategoryCompareIds(ids: string[]): string[] {
+  return reconcileCompareIds(ids, publicCatalogService.list(), true);
+}
+export function reconcileCompareIds(
+  ids: string[],
+  availableListings: readonly Pick<VehicleListing, "id" | "category">[],
+  preserveUnavailable = false,
+): string[] {
+  const byId = new Map(availableListings.map((listing) => [listing.id, listing.category]));
   let category: string | undefined;
-  return ids.filter((id) => {
-    const listing = publicCatalogService.byId(id);
-    if (!listing) return false;
-    category ??= listing.category;
-    return listing.category === category;
+  return normalizeCompareIds(ids).filter((id) => {
+    const listingCategory = byId.get(id);
+    if (!listingCategory) return preserveUnavailable;
+    category ??= listingCategory;
+    return listingCategory === category;
   });
 }
 export function canCompareListing(ids: string[], listingId: string): boolean {

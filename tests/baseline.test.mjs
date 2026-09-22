@@ -382,7 +382,8 @@ test("the current wizard requires a photo while shared missing-image fallbacks r
   assert.match(card, /v\.images\[0\] \?/);
   assert.match(card, /vehicle\.gallery\.noImages/);
   assert.match(gallery, /vehicle\.gallery\.noImages/);
-  assert.match(compare, /vehicle\.images\[0\] \?/);
+  assert.match(compare, /const image = vehicle\.images\[0\]/);
+  assert.match(compare, /aria-label=\{t\("vehicle\.gallery\.noImages"\)\}/);
 });
 
 test("vehicle detail presents grouped localized facts and seller-specific cards", async () => {
@@ -722,14 +723,47 @@ test("favorites and compare remain independent and documented in both languages"
   const docs = await read("DEVELOPMENT.md");
   assert.doesNotMatch(favorites, /compareService|queryKeys\.compare/);
   assert.doesNotMatch(compare, /favoritesService|queryKeys\.favorites/);
-  assert.match(i18n, /"compare\.title": "مقارنة المعروضات"/);
-  assert.match(i18n, /"compare\.title": "Compare vehicles"/);
+  assert.match(i18n, /"compare\.title": "مقارنة الإعلانات"/);
+  assert.match(i18n, /"compare\.title": "Compare listings"/);
   assert.match(i18n, /"favorites\.search":/);
   assert.match(docs, /sd-favorites/);
   assert.match(docs, /sd-compare/);
   assert.match(docs, /maximum of four/);
   assert.match(docs, /Favorites and Compare are intentionally independent/);
   assert.match(docs, /NEXT_DIST_DIR=\.next-build npm run build/);
+});
+
+test("compare polish shares one media frame and uses actionable category-neutral copy", async () => {
+  const [page, card, detail, i18n] = await Promise.all([
+    read("src/app/(site)/compare/compare-client.tsx"),
+    read("src/components/marketplace/VehicleCard.tsx"),
+    read("src/app/(site)/vehicles/[id]/vehicle-detail-client.tsx"),
+    read("src/lib/i18n.tsx"),
+  ]);
+  assert.match(page, /const compareMediaFrameClass/);
+  assert.equal((page.match(/<CompareMedia vehicle=\{vehicle\} \/>/g) ?? []).length, 2);
+  assert.match(page, /h-36 w-48/);
+  assert.match(page, /sizes="192px"/);
+  assert.match(page, /className="object-contain p-2"/);
+  assert.match(page, /role="img"/);
+  assert.match(page, /aria-label=\{t\("vehicle\.gallery\.noImages"\)\}/);
+  assert.match(page, /line-clamp-2 min-h-10/);
+  for (const copy of [
+    "You can compare up to 4 listings only. Remove one to add another.",
+    "يمكنك مقارنة 4 إعلانات كحد أقصى. احذف إعلانًا لإضافة إعلان آخر.",
+    "You can only compare listings from the same category.",
+    "يمكنك مقارنة إعلانات من الفئة نفسها فقط.",
+    "Compare listings",
+    "مقارنة الإعلانات",
+  ])
+    assert.ok(i18n.includes(copy), copy);
+  assert.doesNotMatch(i18n, /"compare\.title": "Compare vehicles"/);
+  assert.doesNotMatch(i18n, /"compare\.description": "[^"]*vehicle/);
+  for (const component of [card, detail])
+    assert.match(
+      component,
+      /if \(!changed\)[\s\S]*?toast\.error\([\s\S]*?\);\s*else toast\.success/,
+    );
 });
 
 test("persisted favorite and compare controls use matching server hydration snapshots", async () => {
@@ -756,7 +790,7 @@ test("compare clear and final removal cannot be restored by a stale URL", async 
   assert.match(page, /if \(pendingUrlValue\.current !== undefined\)/);
   assert.match(page, /else return/);
   assert.match(page, /const setComparison = \(ids: string\[]\)/);
-  assert.match(page, /const valid = sameCategoryCompareIds\(ids\)/);
+  assert.match(page, /const valid = reconcileCompareIds\(ids, all\)/);
   assert.match(page, /replaceCompare\(valid\);\s*updateUrl\(valid\)/);
   assert.match(page, /const next = comparedIds\.filter\(\(item\) => item !== id\)/);
   assert.match(page, /setComparison\(next\)/);

@@ -340,23 +340,16 @@ test("discovery filters by category and category-specific fields with stable URL
   );
 });
 
-test("compare accepts same-category listings and rejects mixed categories", async () => {
+test("compare additions survive post-write reconciliation for every category", async () => {
   const {
     localStorage,
     managedListingsService: service,
     compareService,
     canCompareListing,
+    normalizeCompareIds,
+    reconcileCompareIds,
     sameCategoryCompareIds,
   } = setup();
-  assert.equal(canCompareListing(["v1"], "moto1"), false);
-  assert.equal(canCompareListing(["v1"], "v2"), true);
-  assert.deepEqual(await compareService.replace("guest", ["v1", "moto1", "v2"]), ["v1", "v2"]);
-  assert.deepEqual(await compareService.list("guest"), ["v1", "v2"]);
-  assert.deepEqual(await compareService.replace("guest", ["moto1", "boat1"]), ["moto1"]);
-  assert.deepEqual(sameCategoryCompareIds(["boat1", "v1", "moto1"]), ["boat1"]);
-  localStorage.setItem("sd-compare:guest", JSON.stringify(["v1", "boat1", "v2"]));
-  assert.deepEqual(await compareService.list("guest"), ["v1", "v2"]);
-  assert.deepEqual(JSON.parse(localStorage.getItem("sd-compare:guest")), ["v1", "v2"]);
   const secondMotorcycle = service.createDraft(owner, "MOTORCYCLE");
   service.updateDraft(owner, secondMotorcycle.id, {
     ...shared,
@@ -383,16 +376,86 @@ test("compare accepts same-category listings and rejects mixed categories", asyn
     },
   });
   service.publishListing(owner, secondBoat.id);
-  assert.deepEqual(await compareService.replace("guest", ["moto1", secondMotorcycle.id]), [
-    "moto1",
-    secondMotorcycle.id,
+
+  const addAndReconcile = async (scope, selected, listingId) => {
+    if (!canCompareListing(selected, listingId)) return { added: false, ids: selected };
+    const optimistic = normalizeCompareIds([...selected, listingId]);
+    await compareService.replace(scope, optimistic);
+    return { added: true, ids: await compareService.list(scope) };
+  };
+  for (const [scope, ids] of [
+    ["guest", ["v1", "v2"]],
+    ["user:motorcycles", ["moto1", secondMotorcycle.id]],
+    ["user:boats", ["boat1", secondBoat.id]],
+  ]) {
+    let selected = [];
+    for (const id of ids) {
+      const result = await addAndReconcile(scope, selected, id);
+      assert.equal(result.added, true);
+      selected = result.ids;
+      assert.deepEqual(selected, ids.slice(0, selected.length));
+    }
+    assert.deepEqual(await compareService.list(scope), ids);
+  }
+
+  for (const [scope, selected, rejected] of [
+    ["guest", ["v1", "v2"], "boat1"],
+    ["guest", ["v1", "v2"], "moto1"],
+    ["user:motorcycles", ["moto1", secondMotorcycle.id], "boat1"],
+    ["user:boats", ["boat1", secondBoat.id], "v1"],
+  ]) {
+    const before = await compareService.list(scope);
+    assert.deepEqual(before, selected);
+    const result = await addAndReconcile(scope, before, rejected);
+    assert.equal(result.added, false);
+    assert.deepEqual(result.ids, selected);
+    assert.deepEqual(await compareService.list(scope), selected);
+  }
+
+  localStorage.setItem("sd-compare:user:temporarily-unresolved", JSON.stringify(["pending-id"]));
+  assert.deepEqual(await compareService.list("user:temporarily-unresolved"), ["pending-id"]);
+  assert.deepEqual(JSON.parse(localStorage.getItem("sd-compare:user:temporarily-unresolved")), [
+    "pending-id",
   ]);
-  assert.deepEqual(await compareService.replace("guest", ["boat1", secondBoat.id]), [
-    "boat1",
-    secondBoat.id,
+  assert.deepEqual(await compareService.replace("user:mixed-corruption", ["v1", "boat1", "v2"]), [
+    "v1",
+    "v2",
   ]);
-  assert.equal(canCompareListing(["moto1"], "boat1"), false);
-  assert.equal(canCompareListing(["boat1"], "v1"), false);
+
+  const catalog = loadTypeScript("src/services/public-catalog.service.ts").publicCatalogService;
+  assert.deepEqual(reconcileCompareIds(["v1", "boat1", "v2", "missing"], catalog.list()), [
+    "v1",
+    "v2",
+  ]);
+  assert.deepEqual(sameCategoryCompareIds(["boat1", "v1", "moto1"]), ["boat1"]);
+});
+
+test("compare persistence retains max, remove, clear, scope, reload, and share behavior", async () => {
+  const { localStorage, compareService } = setup();
+  const scope = "user:compare-regression";
+  assert.deepEqual(await compareService.replace(scope, ["v1", "v2", "v3", "v4", "v5"]), [
+    "v1",
+    "v2",
+    "v3",
+    "v4",
+  ]);
+  await compareService.replace(scope, ["v1", "v3", "v4"]);
+  assert.deepEqual(await compareService.list(scope), ["v1", "v3", "v4"]);
+  assert.deepEqual(await compareService.list("user:another-account"), []);
+
+  clearTypeScriptModules();
+  const reloaded = loadTypeScript("src/services/compare.service.ts").compareService;
+  assert.deepEqual(await reloaded.list(scope), ["v1", "v3", "v4"]);
+  const { createCompareQuery, parseCompareUrlIds } = loadTypeScript("src/lib/compare-url.ts");
+  const query = createCompareQuery(await reloaded.list(scope));
+  assert.equal(query, "?vehicles=v1%2Cv3%2Cv4");
+  assert.deepEqual(
+    parseCompareUrlIds(new URLSearchParams(query).get("vehicles"), new Set(["v1", "v3", "v4"])),
+    ["v1", "v3", "v4"],
+  );
+  await reloaded.replace(scope, []);
+  assert.deepEqual(await reloaded.list(scope), []);
+  assert.equal(localStorage.getItem(`sd-compare:${scope}`), null);
 });
 
 test("runtime category boundary rejects swapped specs and malformed persisted records", () => {
