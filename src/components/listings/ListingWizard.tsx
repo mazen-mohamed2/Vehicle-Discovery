@@ -1,4 +1,5 @@
 "use client";
+import { listingVisibilityKey } from "@/lib/listing";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -472,7 +473,7 @@ export function ListingWizard({ listingId }: { listingId: string }) {
           )}
           {active === "review" && (
             <div className="space-y-4">
-              <p className="rounded-lg bg-secondary p-4">{t("listing.preview.private")}</p>
+              <p className="rounded-lg bg-secondary p-4">{t(listingVisibilityKey(draft.status))}</p>
               <dl className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <dt className="text-muted-foreground">{t("form.make")}</dt>

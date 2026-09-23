@@ -25,6 +25,8 @@ import { useImportWorkflow } from "@/hooks/use-import-workflow";
 import { useI18n } from "@/lib/i18n";
 import { formatCurrency, formatDate, formatYear } from "@/lib/locale";
 import { agenciesService } from "@/services/agencies.service";
+import { importDealerIdentity } from "@/services/import-presentation.service";
+import { parseMoney, MoneyValidationError } from "@/lib/money";
 import { TrustBadge } from "@/components/trust-safety/TrustBadge";
 import { trustSafetyService } from "@/services/trust-safety.service";
 import { resolveImportDetailState, type ImportOfferRecord } from "@/lib/import-workflow";
@@ -224,15 +226,17 @@ function OwnerOffer({
   onReject: () => void;
 }) {
   const { t, locale } = useI18n();
+  const identity = importDealerIdentity(offer.dealerUserId);
   const dealer = useQuery({
-    queryKey: queryKeys.agencies.detail(offer.dealerId ?? "missing"),
-    queryFn: () => (offer.dealerId ? agenciesService.byId(offer.dealerId) : Promise.resolve(null)),
+    queryKey: queryKeys.agencies.detail(identity.dealerId ?? "missing"),
+    queryFn: () =>
+      identity.dealerId ? agenciesService.byId(identity.dealerId) : Promise.resolve(null),
   });
   return (
     <article className="rounded-2xl surface-card p-5 shadow-card">
       <div className="flex flex-wrap justify-between gap-3">
         <div>
-          <h3 className="font-black">{dealer.data?.name ?? t("import.offer.dealer")}</h3>
+          <h3 className="font-black">{identity.displayName}</h3>
           {dealer.data && (
             <p className="text-sm text-muted-foreground">
               {dealer.data.rating}{" "}
@@ -297,7 +301,7 @@ function DealerOfferForm({
       await workflow.submitOffer({
         id: requestId,
         input: {
-          price: Number(value.price),
+          price: parseMoney(value.price, "EGP"),
           currency: "EGP",
           estimatedDelivery: value.delivery,
           notes: value.notes,
@@ -305,7 +309,8 @@ function DealerOfferForm({
       });
       toast.success(t("import.offer.success"));
     } catch (error) {
-      if (error && typeof error === "object" && "fields" in error)
+      if (error instanceof MoneyValidationError) setErrors({ price: error.code });
+      else if (error && typeof error === "object" && "fields" in error)
         setErrors(error.fields as Record<string, string>);
       else toast.error(t("import.offer.duplicate"));
     }
@@ -340,8 +345,8 @@ function DealerOfferForm({
         <Label>
           {t("import.offer.price")}
           <Input
-            type="number"
-            min="1"
+            type="text"
+            inputMode="decimal"
             value={value.price}
             aria-invalid={Boolean(errors.price)}
             aria-describedby={errors.price ? "offer-price-error" : undefined}
@@ -349,7 +354,11 @@ function DealerOfferForm({
           />
           {errors.price && (
             <span id="offer-price-error" className="text-sm text-destructive">
-              {t(`import.validation.${errors.price}`)}
+              {t(
+                errors.price === "precision"
+                  ? "money.precision"
+                  : `import.validation.${errors.price}`,
+              )}
             </span>
           )}
         </Label>

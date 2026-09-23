@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { useTransactions } from "@/hooks/use-transactions";
 import { useI18n } from "@/lib/i18n";
@@ -8,6 +9,7 @@ import {
   transactionBase,
   transactionErrorKey,
   transactionSourceKey,
+  transactionProgressKey,
   type MarketplaceTransactionSource,
 } from "@/lib/marketplace-transaction";
 import { Button } from "@/components/ui/button";
@@ -53,6 +55,11 @@ export function TransactionEntry({
   };
   return (
     <div className="mt-4 space-y-2">
+      <div>
+        <Badge variant="outline" className="max-w-full whitespace-normal">
+          {t("transactions.status")}: {t(transactionProgressKey(existing, canStart, source))}
+        </Badge>
+      </div>
       {existing ? (
         <Button asChild size="sm" variant="outline">
           <Link href={`${base}/${existing.id}`}>{t("transactions.view")}</Link>

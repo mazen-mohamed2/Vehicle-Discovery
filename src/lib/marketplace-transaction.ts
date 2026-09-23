@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formatMoney } from "@/lib/money";
 import type { CommunicationActor } from "@/lib/communication";
 
 // Future lifecycle contracts. Only the initial states are writable in this frontend.
@@ -73,6 +74,7 @@ export type TransactionErrorCode =
   | "SOURCE_NOT_ACCEPTED"
   | "INVALID_SOURCE"
   | "INVALID_AMOUNT"
+  | "INVALID_MONEY_PRECISION"
   | "INVALID_CURRENCY"
   | "INVALID_PARTICIPANTS"
   | "STORAGE_READ_FAILED"
@@ -93,15 +95,23 @@ export function transactionBase(role: "user" | "dealer") {
 export function transactionErrorKey(error: unknown) {
   return `transactions.error.${error instanceof TransactionError ? error.code : "STORAGE_READ_FAILED"}`;
 }
+export function transactionProgressKey(
+  record: MarketplaceTransaction | undefined,
+  canStart: boolean,
+  source: MarketplaceTransactionSource,
+) {
+  return record
+    ? `transactions.status.${record.status}`
+    : canStart
+      ? "transactions.notStarted"
+      : source.type === "IMPORT_OFFER"
+        ? "transactions.waitingCustomer"
+        : "transactions.waitingBuyer";
+}
 export function formatTransactionAmount(
   amount: number,
   currency: "EGP" | "USD",
   locale: "en" | "ar",
 ) {
-  return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 20,
-  }).format(amount);
+  return formatMoney(amount, currency, locale, 2);
 }

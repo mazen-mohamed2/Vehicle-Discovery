@@ -1,3 +1,4 @@
+import { parseMoney } from "@/lib/money";
 import {
   ImportWorkflowError,
   validateImportOffer,
@@ -198,6 +199,7 @@ export const importRequestsService = {
     const now = new Date().toISOString();
     const offer: ImportOfferRecord = {
       ...input,
+      price: parseMoney(input.price, input.currency),
       estimatedDelivery: input.estimatedDelivery.trim(),
       notes: input.notes?.trim() || undefined,
       id: `offer_${crypto.randomUUID()}`,

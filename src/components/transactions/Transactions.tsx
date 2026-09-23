@@ -15,8 +15,8 @@ import {
   type TransactionActor,
 } from "@/lib/marketplace-transaction";
 import { developmentPublicProfile } from "@/services/auth.service";
-import { publicCatalogService } from "@/services/public-catalog.service";
-import { importRequestsService } from "@/services/import-requests.service";
+import { ListingContext } from "@/components/marketplace/ListingContext";
+import { transactionContext } from "@/services/transaction-context.service";
 import { queryKeys } from "@/lib/query-keys";
 
 function Person({ id }: { id: string }) {
@@ -149,27 +149,35 @@ function SourceContext({
   const context = useQuery({
     queryKey: [...queryKeys.transactions.detail(actor.scope, record.id), "source-context"],
     retry: false,
-    queryFn: () => {
-      if (source.type === "LISTING_OFFER")
-        return publicCatalogService.byId(source.listingId)
-          ? `/vehicles/${encodeURIComponent(source.listingId)}`
-          : null;
-      if (actor.role === "user")
-        return importRequestsService
-          .ownedRequests(actor)
-          .some((request) => request.id === source.importRequestId)
-          ? `/account/import-requests/${encodeURIComponent(source.importRequestId)}`
-          : null;
-      return importRequestsService
-        .offersForDealer(actor)
-        .some((offer) => offer.id === source.offerId)
-        ? "/dealer-account/import-requests"
-        : null;
-    },
+    queryFn: () => transactionContext(record, actor),
   });
   return (
     <section className="rounded-2xl surface-card p-5">
       <h2 className="text-xl font-black">{t("transactions.source")}</h2>
+      {context.data?.type === "LISTING_OFFER" && (
+        <div className="mt-4">
+          <ListingContext
+            listingId={context.data.listing.listingId}
+            resolvedContext={context.data.listing}
+            showPrice={false}
+          />
+          {!context.data.listing.available && (
+            <p className="mt-2 break-words font-semibold">
+              {record.snapshot.title} · {t(`category.single.${record.snapshot.category}`)}
+            </p>
+          )}
+        </div>
+      )}
+      {source.type === "IMPORT_OFFER" && (
+        <div className="mt-4 space-y-2">
+          <h3 className="break-words font-bold">
+            {context.data?.type === "IMPORT_OFFER" ? context.data.title : record.snapshot.title}
+          </h3>
+          <p className="text-sm">
+            {t("transactions.dealer")}: <Person id={record.sellerParticipantId} />
+          </p>
+        </div>
+      )}
       <dl className="mt-4 grid gap-4 sm:grid-cols-2">
         <Field label={t("transactions.sourceId")}>
           <bdi className="break-all">
@@ -186,11 +194,11 @@ function SourceContext({
         </p>
       ) : context.isError ? (
         <p className="mt-4 text-sm">{t("transactions.contextError")}</p>
-      ) : context.data ? (
+      ) : context.data?.type === "IMPORT_OFFER" && context.data.href ? (
         <Button asChild size="sm" variant="outline" className="mt-4">
-          <Link href={context.data}>{t("transactions.sourceLink")}</Link>
+          <Link href={context.data.href}>{t("transactions.viewImport")}</Link>
         </Button>
-      ) : (
+      ) : context.data?.type === "LISTING_OFFER" && context.data.listing.available ? null : (
         <p className="mt-4 text-sm text-muted-foreground">
           {t(
             source.type === "LISTING_OFFER"

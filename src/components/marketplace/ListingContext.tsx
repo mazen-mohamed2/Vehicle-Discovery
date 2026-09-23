@@ -7,20 +7,23 @@ import { useI18n } from "@/lib/i18n";
 import { formatCurrency } from "@/lib/locale";
 import { cn } from "@/lib/utils";
 import { listingContextService } from "@/services/listing-context.service";
+import type { ListingContextPresentation } from "@/services/listing-context.service";
 
 export function ListingContext({
   listingId,
   className,
   showPrice = true,
   compact = false,
+  resolvedContext,
 }: {
   listingId: string;
   className?: string;
   showPrice?: boolean;
   compact?: boolean;
+  resolvedContext?: ListingContextPresentation;
 }) {
   const { t, locale } = useI18n();
-  const context = listingContextService.resolve(listingId);
+  const context = resolvedContext ?? listingContextService.resolve(listingId);
   const body = (
     <>
       <div

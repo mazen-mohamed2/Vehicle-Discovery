@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseMoney, MoneyValidationError } from "@/lib/money";
 import { CommunicationError } from "@/lib/communication";
 import { ImportWorkflowError } from "@/lib/import-workflow";
 import {
@@ -145,6 +146,15 @@ function create(actor: TransactionActor, input: MarketplaceTransactionSource) {
     throw new TransactionError("INVALID_AMOUNT");
   if (terms.currency !== "EGP" && terms.currency !== "USD")
     throw new TransactionError("INVALID_CURRENCY");
+  try {
+    parseMoney(terms.agreedAmount, terms.currency);
+  } catch (error) {
+    throw new TransactionError(
+      error instanceof MoneyValidationError && error.code === "precision"
+        ? "INVALID_MONEY_PRECISION"
+        : "INVALID_AMOUNT",
+    );
+  }
   const now = new Date().toISOString();
   const record: MarketplaceTransaction = {
     id: `transaction_${crypto.randomUUID()}`,

@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n";
+import { formatMoney } from "@/lib/money";
 
 const localeTags: Record<Locale, string> = { ar: "ar-EG", en: "en-US" };
 
@@ -7,11 +8,7 @@ export function formatNumber(value: number, locale: Locale) {
 }
 
 export function formatCurrency(value: number, currency: "EGP" | "USD", locale: Locale) {
-  return new Intl.NumberFormat(localeTags[locale], {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatMoney(value, currency, locale);
 }
 
 export function formatDate(value: string | Date, locale: Locale) {

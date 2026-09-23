@@ -485,3 +485,41 @@ identities remain user-editable. Backend handoff requires:
 Wallet, tokens, balances, deposits, withdrawals, checkout, providers, and the separate dashboard
 are untouched. Browser Manual QA and the user's later production build remain required before
 Sprint 12 closure.
+
+### Sprint 12 final QA remediation
+
+The observed `200.555 -> 201` occurred in `formatCurrency` (`Intl.NumberFormat` with
+`maximumFractionDigits: 0`), not in Offer persistence or transaction snapshots. Offer input
+previously used unchecked `Number(amount)` and the service checked only positive/finite values.
+`money.ts` now owns EGP/USD two-decimal validation and formatting. Decimal text (including Arabic
+digits/decimal separator) is validated before number conversion, and listing/import offer services
+validate independently. Financial inputs use text + decimal input mode to avoid native number/step
+rounding or browser-specific rejection; explicit accessible errors report excess precision. No
+rounding is used for validation. Empty, grouped/ambiguous, exponential-text and invalid amounts are
+rejected. Valid `200.55` remains unchanged through both participants' Offer and Transaction views.
+
+Legacy over-precision Offers/Transactions remain readable at their stored precision. They are not
+rewritten or deleted. A new transaction from an invalid-precision accepted Offer returns typed
+`INVALID_MONEY_PRECISION`; already existing transaction history remains intact. Number storage is
+still mock-only: the backend must use exact minor units or DECIMAL/NUMERIC and authoritative checks.
+
+Offer lists now default to canonical `createdAt` descending and support title search, status/category
+filters and all four sorts. These are authorized-dataset presentation operations only. Amount sorts
+group by currency and sort values within each currency, explicitly explained in the UI; no exchange
+rate is invented. Filtered-empty is distinct from no offers. Eligibility is resolved through the same
+service rule used during creation: pending/accepted prevents re-entry, rejected/withdrawn allows a
+new offer unless another accepted offer already blocks the listing. Precise errors remain defensive
+against stale UI/cross-tab races. Financial badges read actual Transactions independently of Offer
+status; transaction source cards reuse Listing Context without current asking price, and unresolved
+sources retain immutable agreement snapshots. Import context remains a request, with no fake image.
+
+Import dealer name mismatch: `dealer-demo` is the canonical Cairo Auto account mapped to `ag1`,
+whose independent agency fixture is named الفهد موتورز. Import Offer presentation previously used
+the agency name while accounts/Transactions used canonical user identity. It now resolves by
+`dealerUserId`, with the canonical profile's dealer relationship used for agency metadata; no IDs,
+financial participants or fixtures are rewritten. Unknown profiles fall back to their canonical ID.
+
+Preview and edit-review visibility copy now follows existing lifecycle status: published is public,
+draft/pending is not yet public, sold/archived is non-public. No lifecycle rules were changed.
+Final browser QA remains required for 375/390/430px, EN/AR/RTL/LTR, keyboard controls, cross-tab
+eligibility/progress and all stable Sprint 11/12 flows. No build or provider integration was run.

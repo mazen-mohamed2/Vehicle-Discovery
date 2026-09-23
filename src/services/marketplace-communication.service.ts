@@ -1,3 +1,4 @@
+import { parseMoney, MoneyValidationError } from "@/lib/money";
 import {
   CommunicationError,
   type CommunicationActor,
@@ -282,32 +283,33 @@ export const marketplaceCommunicationService = {
   createOffer(
     actor: CommunicationActor,
     listingId: string,
-    input: { amount: number; currency: "EGP" | "USD"; note?: string },
+    input: { amount: number | string; currency: "EGP" | "USD"; note?: string },
   ) {
     const listing = listingForInteraction(listingId);
     if (listing.sellerUserId === actor.id) throw new CommunicationError("SELF_INTERACTION");
-    if (!Number.isFinite(input.amount) || input.amount <= 0)
-      throw new CommunicationError("VALIDATION_ERROR", { amount: "positive" });
+    const eligibility = this.offerEligibility(actor, listingId);
+    if (eligibility === "pending") throw new CommunicationError("DUPLICATE_ACTIVE_OFFER");
+    if (eligibility === "accepted" || eligibility === "acceptedOther")
+      throw new CommunicationError("ACCEPTED_OFFER_EXISTS", {
+        offer: eligibility === "accepted" ? "acceptedOwn" : "acceptedOther",
+      });
+    let amount: number;
+    try {
+      amount = parseMoney(input.amount, input.currency);
+    } catch (error) {
+      throw new CommunicationError("VALIDATION_ERROR", {
+        amount: error instanceof MoneyValidationError ? error.code : "positive",
+      });
+    }
     if ((input.note?.length ?? 0) > 1000)
       throw new CommunicationError("VALIDATION_ERROR", { note: "length" });
-    if (offers().some((item) => item.listingId === listingId && item.status === "ACCEPTED"))
-      throw new CommunicationError("ACCEPTED_OFFER_EXISTS");
-    if (
-      offers().some(
-        (item) =>
-          item.listingId === listingId &&
-          item.buyerUserId === actor.id &&
-          item.status === "PENDING",
-      )
-    )
-      throw new CommunicationError("DUPLICATE_ACTIVE_OFFER");
     const now = new Date().toISOString();
     const offer: VehicleOfferRecord = {
       id: `vehicle_offer_${crypto.randomUUID()}`,
       listingId,
       buyerUserId: actor.id,
       sellerUserId: listing.sellerUserId,
-      amount: input.amount,
+      amount,
       currency: input.currency,
       note: input.note?.trim() || undefined,
       status: "PENDING",
@@ -324,6 +326,19 @@ export const marketplaceCommunicationService = {
         : "/account/received-offers",
     );
     return offer;
+  },
+  offerEligibility(
+    actor: CommunicationActor,
+    listingId: string,
+  ): "eligible" | "pending" | "accepted" | "acceptedOther" {
+    const listing = listingForInteraction(listingId);
+    if (listing.sellerUserId === actor.id) throw new CommunicationError("SELF_INTERACTION");
+    const values = offers().filter((item) => item.listingId === listingId);
+    const accepted = values.find((item) => item.status === "ACCEPTED");
+    if (accepted) return accepted.buyerUserId === actor.id ? "accepted" : "acceptedOther";
+    return values.some((item) => item.buyerUserId === actor.id && item.status === "PENDING")
+      ? "pending"
+      : "eligible";
   },
   buyerOffers(actor: CommunicationActor) {
     return offers().filter((item) => item.buyerUserId === actor.id);

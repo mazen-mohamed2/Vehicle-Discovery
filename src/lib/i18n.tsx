@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { applyRootDocumentAttributes, rootDocumentAttributes } from "@/lib/root-document";
 import { transactionsAr, transactionsEn } from "@/lib/transaction-copy";
+import { sprint12QaAr, sprint12QaEn } from "@/lib/sprint12-qa-copy";
 
 export type Locale = "ar" | "en";
 export type Theme = "light" | "dark";
@@ -752,6 +753,7 @@ const marketplaceEn: Record<keyof typeof marketplaceAr, string> = {
 const ar = {
   ...marketplaceAr,
   ...transactionsAr,
+  ...sprint12QaAr,
   ...listingAr,
   ...importFlowAr,
   ...communicationAr,
@@ -1154,6 +1156,7 @@ const ar = {
 const en: Record<keyof typeof ar, string> = {
   ...marketplaceEn,
   ...transactionsEn,
+  ...sprint12QaEn,
   ...listingEn,
   ...importFlowEn,
   ...communicationEn,

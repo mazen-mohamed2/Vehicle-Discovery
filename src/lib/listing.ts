@@ -7,6 +7,13 @@ import {
 } from "@/lib/marketplace-listing";
 
 export type ListingStatus = "draft" | "pending" | "published" | "sold" | "archived";
+export function listingVisibilityKey(status: ListingStatus) {
+  return status === "published"
+    ? "listing.preview.published"
+    : status === "draft" || status === "pending"
+      ? "listing.preview.private"
+      : "listing.preview.nonPublic";
+}
 export type VerificationStatus =
   "notSubmitted" | "pending" | "verified" | "rejected" | "requiresAction";
 export type ListingStep =

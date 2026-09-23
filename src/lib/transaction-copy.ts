@@ -1,4 +1,6 @@
 export const transactionsEn = {
+  "transactions.error.INVALID_MONEY_PRECISION":
+    "The stored offer has invalid money precision. It has not been changed, and no transaction was created.",
   "transactions.title": "Transactions",
   "transactions.mine": "My transactions",
   "transactions.detail": "Transaction details",
@@ -66,6 +68,8 @@ export const transactionsEn = {
     "The transaction could not be saved. Please retry. No payment was made.",
 };
 export const transactionsAr: Record<keyof typeof transactionsEn, string> = {
+  "transactions.error.INVALID_MONEY_PRECISION":
+    "المبلغ المحفوظ في العرض يتجاوز الدقة المسموحة. لم يتم تغييره ولم يتم إنشاء معاملة.",
   "transactions.title": "المعاملات",
   "transactions.mine": "معاملاتي",
   "transactions.detail": "تفاصيل المعاملة",

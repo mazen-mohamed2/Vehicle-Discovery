@@ -8,7 +8,7 @@ import { queryKeys } from "@/lib/query-keys";
 import { authStorageScope } from "@/lib/storage-scope";
 import { marketplaceCommunicationService as service } from "@/services/marketplace-communication.service";
 
-export function useMarketplaceCommunication(conversationId?: string) {
+export function useMarketplaceCommunication(conversationId?: string, listingId?: string) {
   const auth = useAuth();
   const client = useQueryClient();
   const scope = authStorageScope(auth.user);
@@ -18,6 +18,12 @@ export function useMarketplaceCommunication(conversationId?: string) {
     [client],
   );
   useEffect(() => service.subscribe(() => void invalidate()), [invalidate]);
+  const offerEligibility = useQuery({
+    queryKey: queryKeys.communication.offerEligibility(scope, listingId ?? "disabled"),
+    queryFn: () => service.offerEligibility(actor!, listingId!),
+    enabled: Boolean(actor && listingId) && !auth.isHydrating,
+    retry: false,
+  });
   const conversations = useQuery({
     queryKey: queryKeys.communication.conversations(scope),
     queryFn: () => service.conversationSummaries(actor!),
@@ -69,7 +75,7 @@ export function useMarketplaceCommunication(conversationId?: string) {
   const createOffer = useMutation({
     mutationFn: async (input: {
       listingId: string;
-      amount: number;
+      amount: number | string;
       currency: "EGP" | "USD";
       note?: string;
     }) => service.createOffer(actor!, input.listingId, input),
@@ -85,6 +91,7 @@ export function useMarketplaceCommunication(conversationId?: string) {
     onSuccess: invalidate,
   });
   return {
+    offerEligibility,
     actor,
     conversationSummaries: conversations.data ?? [],
     conversations: conversations.data?.map(({ conversation }) => conversation) ?? [],

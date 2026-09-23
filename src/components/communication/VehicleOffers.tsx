@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { defaultOfferFilters, presentOffers, type OfferFilters } from "@/lib/offer-presentation";
+import { listingContextService } from "@/services/listing-context.service";
 import { TransactionEntry } from "@/components/transactions/TransactionEntry";
 import { AuthBoundary } from "@/components/auth/AuthBoundary";
 import { Button } from "@/components/ui/button";
@@ -21,6 +25,17 @@ export function VehicleOffers({
   const { t, locale } = useI18n();
   const workflow = useMarketplaceCommunication();
   const offers = received ? workflow.receivedOffers : workflow.buyerOffers;
+  const [filters, setFilters] = useState<OfferFilters>(defaultOfferFilters);
+  const contexts = new Map(
+    offers.map((offer) => {
+      try {
+        return [offer.listingId, listingContextService.resolve(offer.listingId)] as const;
+      } catch {
+        return [offer.listingId, { listingId: offer.listingId, available: false }] as const;
+      }
+    }),
+  );
+  const visible = presentOffers(offers, filters, contexts);
   const action = async (name: "accept" | "reject" | "withdraw", id: string) => {
     await workflow.runOfferAction({ action: name, id });
   };
@@ -30,6 +45,53 @@ export function VehicleOffers({
         <h1 className="text-3xl font-black">
           {t(received ? "vehicleOffers.received" : "vehicleOffers.mine")}
         </h1>
+        <section
+          aria-label={t("offers.controls")}
+          className="mt-5 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <label className="min-w-0 text-sm font-semibold">
+            {t("offers.search")}
+            <Input
+              value={filters.search}
+              onChange={(event) => setFilters({ ...filters, search: event.target.value })}
+            />
+          </label>
+          <OfferSelect
+            label={t("offers.status")}
+            value={filters.status}
+            onChange={(status) => setFilters({ ...filters, status })}
+            options={["ALL", "PENDING", "ACCEPTED", "REJECTED", "WITHDRAWN"].map((value) => ({
+              value,
+              label: t(value === "ALL" ? "offers.all" : `vehicleOffers.status.${value}`),
+            }))}
+          />
+          <OfferSelect
+            label={t("offers.category")}
+            value={filters.category}
+            onChange={(category) => setFilters({ ...filters, category })}
+            options={["ALL", "CAR", "MOTORCYCLE", "BOAT"].map((value) => ({
+              value,
+              label: t(value === "ALL" ? "offers.all" : `category.single.${value}`),
+            }))}
+          />
+          <OfferSelect
+            label={t("offers.sort")}
+            value={filters.sort}
+            onChange={(sort) => setFilters({ ...filters, sort })}
+            options={["newest", "oldest", "amountHigh", "amountLow"].map((value) => ({
+              value,
+              label: t(`offers.${value}`),
+            }))}
+          />
+          <Button variant="outline" size="sm" onClick={() => setFilters(defaultOfferFilters)}>
+            {t("offers.reset")}
+          </Button>
+          {(filters.sort === "amountHigh" || filters.sort === "amountLow") && (
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              {t("offers.currencySort")}
+            </p>
+          )}
+        </section>
         {workflow.isLoading ? (
           <p className="mt-6" role="status">
             {t("a11y.loading")}
@@ -44,9 +106,13 @@ export function VehicleOffers({
               {t(received ? "vehicleOffers.emptyReceived" : "vehicleOffers.emptyMine")}
             </h2>
           </section>
+        ) : visible.length === 0 ? (
+          <p role="status" className="mt-6 rounded-2xl surface-card p-6">
+            {t("offers.noMatches")}
+          </p>
         ) : (
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {offers.map((offer) => (
+            {visible.map((offer) => (
               <OfferCard
                 key={offer.id}
                 offer={offer}
@@ -59,6 +125,35 @@ export function VehicleOffers({
         )}
       </main>
     </AuthBoundary>
+  );
+}
+
+function OfferSelect<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { value: string; label: string }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <label className="min-w-0 text-sm font-semibold">
+      {label}
+      <select
+        className="mt-1 h-10 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        value={value}
+        onChange={(event) => onChange(event.target.value as T)}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

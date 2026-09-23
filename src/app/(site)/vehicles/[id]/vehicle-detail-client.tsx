@@ -44,6 +44,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useMarketplaceCommunication } from "@/hooks/use-marketplace-communication";
 import { CommunicationError } from "@/lib/communication";
+import { offerErrorKey } from "@/lib/offer-presentation";
+import { parseMoney } from "@/lib/money";
 import { ReportDialog } from "@/components/trust-safety/ReportDialog";
 import { TrustBadge } from "@/components/trust-safety/TrustBadge";
 import { trustSafetyService } from "@/services/trust-safety.service";
@@ -73,7 +75,7 @@ export function VehicleDetailClient({
   const compared = isCompared(v.id);
   const auth = useAuth();
   const router = useRouter();
-  const communication = useMarketplaceCommunication();
+  const communication = useMarketplaceCommunication(undefined, v.id);
   const returnPath = `/vehicles/${v.id}`;
   const ownListing = Boolean(auth.user && v.sellerUserId === auth.user.id);
   const existingOffer = communication.buyerOffers.find(
@@ -205,15 +207,41 @@ export function VehicleDetailClient({
               >
                 <MessageSquare className="me-2 h-4 w-4" /> {t("vehicle.contactSeller")}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="col-span-2"
-                disabled={ownListing}
-                onClick={() => auth.requireAuth(returnPath, () => setOfferOpen(true))}
-              >
-                <HandCoins className="me-2 h-4 w-4" /> {t("vehicleOffers.make")}
-              </Button>
+              <div className="col-span-2 min-w-0">
+                {auth.isHydrating ||
+                (auth.user && !ownListing && communication.offerEligibility.isPending) ? (
+                  <p role="status">{t("a11y.loading")}</p>
+                ) : auth.user && !ownListing && communication.offerEligibility.isError ? (
+                  <p role="alert">{t(offerErrorKey(communication.offerEligibility.error))}</p>
+                ) : auth.user &&
+                  communication.offerEligibility.data &&
+                  communication.offerEligibility.data !== "eligible" ? (
+                  <div className="space-y-2 text-sm">
+                    <p>{t(`offers.${communication.offerEligibility.data}`)}</p>
+                    {communication.offerEligibility.data !== "acceptedOther" && (
+                      <Button asChild variant="outline" className="w-full">
+                        <Link
+                          href={
+                            auth.role === "dealer" ? "/dealer-account/offers" : "/account/offers"
+                          }
+                        >
+                          {t("offers.viewMine")}
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={ownListing}
+                    onClick={() => auth.requireAuth(returnPath, () => setOfferOpen(true))}
+                  >
+                    <HandCoins className="me-2 h-4 w-4" /> {t("vehicleOffers.make")}
+                  </Button>
+                )}
+              </div>
               {isHydrating ? (
                 <Skeleton role="status" aria-label={t("a11y.loading")} className="h-10 w-full" />
               ) : (
@@ -312,7 +340,7 @@ export function VehicleDetailClient({
         targetId={v.id}
       />
       <VehicleOfferDialog
-        open={offerOpen}
+        open={offerOpen && communication.offerEligibility.data === "eligible"}
         onOpenChange={setOfferOpen}
         listingId={v.id}
         currency={v.currency}
@@ -342,7 +370,7 @@ function VehicleOfferDialog({
   existingOfferId?: string;
   onCreate: (input: {
     listingId: string;
-    amount: number;
+    amount: number | string;
     currency: "EGP" | "USD";
     note?: string;
   }) => Promise<unknown>;
@@ -356,19 +384,14 @@ function VehicleOfferDialog({
   const submit = async () => {
     setError("");
     try {
-      await onCreate({ listingId, amount: Number(amount), currency, note });
+      parseMoney(amount, currency);
+      await onCreate({ listingId, amount, currency, note });
       onOpenChange(false);
       setAmount("");
       setNote("");
       toast.success(t("vehicleOffers.created"));
     } catch (caught) {
-      setError(
-        t(
-          caught instanceof CommunicationError && caught.code === "DUPLICATE_ACTIVE_OFFER"
-            ? "vehicleOffers.duplicate"
-            : "vehicleOffers.invalid",
-        ),
-      );
+      setError(t(offerErrorKey(caught)));
     }
   };
   return (
@@ -399,8 +422,8 @@ function VehicleOfferDialog({
               {t("vehicleOffers.amount")}
               <Input
                 id="vehicle-offer-amount"
-                type="number"
-                min="1"
+                type="text"
+                inputMode="decimal"
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
                 aria-invalid={Boolean(error)}

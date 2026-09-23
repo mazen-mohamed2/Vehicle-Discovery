@@ -55,6 +55,8 @@ export const queryKeys = {
       ["import-workflow", scope, "dealer-offers"] as const,
   },
   communication: {
+    offerEligibility: (scope: import("@/lib/storage-scope").StorageScope, listingId: string) =>
+      ["communication", scope, "offer-eligibility", listingId] as const,
     all: ["communication"] as const,
     conversations: (scope: import("@/lib/storage-scope").StorageScope) =>
       ["communication", scope, "conversations"] as const,

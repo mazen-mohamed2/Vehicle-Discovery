@@ -1,4 +1,5 @@
 import type { AuthUser } from "@/lib/auth";
+import { parseMoney, MoneyValidationError, type MoneyCurrency } from "@/lib/money";
 import type { StorageScope } from "@/lib/storage-scope";
 
 export type ImportRequestStatus = "OPEN" | "OFFER_ACCEPTED" | "CANCELLED";
@@ -116,11 +117,16 @@ export function validateImportRequest(input: {
 
 export function validateImportOffer(input: {
   price: number;
+  currency?: MoneyCurrency;
   estimatedDelivery: string;
   notes?: string;
 }) {
   const fields: Record<string, string> = {};
-  if (!Number.isFinite(input.price) || input.price <= 0) fields.price = "positive";
+  try {
+    parseMoney(input.price, input.currency ?? "EGP");
+  } catch (error) {
+    fields.price = error instanceof MoneyValidationError ? error.code : "positive";
+  }
   if (!input.estimatedDelivery.trim()) fields.estimatedDelivery = "required";
   if (input.estimatedDelivery.length > 100) fields.estimatedDelivery = "length";
   if ((input.notes?.length ?? 0) > 1000) fields.notes = "length";

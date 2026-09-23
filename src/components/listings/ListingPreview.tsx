@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button";
 import { useManagedListings } from "@/hooks/use-managed-listings";
 import { useI18n } from "@/lib/i18n";
 import { validateListing } from "@/lib/listing-validators";
-import { listingCoverImage, listingTitle, toPublicVehicle } from "@/lib/listing";
+import {
+  listingCoverImage,
+  listingTitle,
+  listingVisibilityKey,
+  toPublicVehicle,
+} from "@/lib/listing";
 import { listingCategoryRegistry, listingSummary } from "@/lib/marketplace-listing";
 
 export function ListingPreview({ listingId }: { listingId: string }) {
@@ -47,7 +52,7 @@ export function ListingPreview({ listingId }: { listingId: string }) {
       <main className="mx-auto max-w-5xl px-4 py-10">
         <div className="mb-5 rounded-lg border border-primary bg-primary/10 p-4">
           <strong>{t("listing.preview.mode")}</strong>
-          <p>{t("listing.preview.private")}</p>
+          <p>{t(listingVisibilityKey(listing.status))}</p>
         </div>
         <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
