@@ -144,6 +144,24 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   type __Unused = __Check
 }
 
+// Validate ../../src/app/(site)/account/transactions/[transactionId]/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/account/transactions/[transactionId]">> = Specific
+  const handler = {} as typeof import("../../src/app/(site)/account/transactions/[transactionId]/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/(site)/account/transactions/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/account/transactions">> = Specific
+  const handler = {} as typeof import("../../src/app/(site)/account/transactions/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/(site)/account/verification/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/account/verification">> = Specific
@@ -229,6 +247,24 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
 {
   type __IsExpected<Specific extends AppPageConfig<"/dealer-account/reports">> = Specific
   const handler = {} as typeof import("../../src/app/(site)/dealer-account/reports/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/(site)/dealer-account/transactions/[transactionId]/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dealer-account/transactions/[transactionId]">> = Specific
+  const handler = {} as typeof import("../../src/app/(site)/dealer-account/transactions/[transactionId]/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/(site)/dealer-account/transactions/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/dealer-account/transactions">> = Specific
+  const handler = {} as typeof import("../../src/app/(site)/dealer-account/transactions/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

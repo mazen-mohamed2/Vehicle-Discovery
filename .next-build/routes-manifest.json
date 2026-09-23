@@ -44,12 +44,28 @@
       "namedRegex": "^/account/listings/(?<nxtPlistingId>[^/]+?)/preview(?:/)?$"
     },
     {
+      "page": "/account/transactions/[transactionId]",
+      "regex": "^/account/transactions/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPtransactionId": "nxtPtransactionId"
+      },
+      "namedRegex": "^/account/transactions/(?<nxtPtransactionId>[^/]+?)(?:/)?$"
+    },
+    {
       "page": "/dealer-account/import-requests/[id]",
       "regex": "^/dealer\\-account/import\\-requests/([^/]+?)(?:/)?$",
       "routeKeys": {
         "nxtPid": "nxtPid"
       },
       "namedRegex": "^/dealer\\-account/import\\-requests/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/dealer-account/transactions/[transactionId]",
+      "regex": "^/dealer\\-account/transactions/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPtransactionId": "nxtPtransactionId"
+      },
+      "namedRegex": "^/dealer\\-account/transactions/(?<nxtPtransactionId>[^/]+?)(?:/)?$"
     },
     {
       "page": "/dealers/[id]",
@@ -152,6 +168,12 @@
       "namedRegex": "^/account/reports(?:/)?$"
     },
     {
+      "page": "/account/transactions",
+      "regex": "^/account/transactions(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/account/transactions(?:/)?$"
+    },
+    {
       "page": "/account/verification",
       "regex": "^/account/verification(?:/)?$",
       "routeKeys": {},
@@ -228,6 +250,12 @@
       "regex": "^/dealer\\-account/reports(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/dealer\\-account/reports(?:/)?$"
+    },
+    {
+      "page": "/dealer-account/transactions",
+      "regex": "^/dealer\\-account/transactions(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dealer\\-account/transactions(?:/)?$"
     },
     {
       "page": "/dealer-account/verification",
